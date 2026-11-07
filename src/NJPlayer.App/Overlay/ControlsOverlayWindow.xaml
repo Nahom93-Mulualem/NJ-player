@@ -47,8 +47,11 @@
                            HorizontalAlignment="Left"
                            Margin="8,0"/>
 
-                <!-- Window Buttons (Settings, Hotkeys, Always on top, Minimize, Maximize, Close) -->
+                <!-- Window Buttons (Equalizer, Settings, Hotkeys, Always on top, Minimize, Maximize, Close) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="EqualizerButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Equalizer (E)" Click="EqualizerButton_Click">
+                        <TextBlock Text="🎚" FontSize="11" />
+                    </Button>
                     <Button x:Name="GeneralSettingsButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Settings" Click="GeneralSettingsButton_Click">
                         <TextBlock Text="⚙" FontSize="11" />
                     </Button>

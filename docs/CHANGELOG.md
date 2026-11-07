@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Audio Suite & 10-Band Graphic Equalizer (`NJPlayer.Features` & `NJPlayer.App`)**:
+  - `IAudioSuite` & `AudioSuiteService`: Modular audio processing engine built behind a lazy-loaded interface in `NJPlayer.Features`.
+  - 10-band graphic equalizer with standard ISO center frequencies (31 Hz, 62 Hz, 125 Hz, 250 Hz, 500 Hz, 1 kHz, 2 kHz, 4 kHz, 8 kHz, 16 kHz) and -12 dB to +12 dB range using FFmpeg peaking biquad filters (`equalizer=f=...:width_type=o:w=1:g=...`).
+  - Dedicated Bass Boost low-shelf filter (`bass=g=...:f=100`) and Treble high-shelf filter (`treble=g=...:f=3000`).
+  - Night Mode using FFmpeg's Dynamic Audio Normalizer (`dynaudnorm=f=150:g=15:m=8:r=0.9`) for dynamic range compression that tames explosions and clarifies whisper dialogue during late-night viewing.
+  - Zero-overhead bypass: bands at 0 dB and flat tone controls produce an empty filter string, keeping the audio path bit-exact.
+  - Built-in genre presets (Flat, Rock, Pop, Jazz, Classical, Dance / EDM, Vocal Boost, Bass Heavy) switching dynamically to "Custom" on any slider interaction.
+  - `AudioPanelWindow`: Modeless floating panel matching `DESIGN.md` Section 6 on `SurfaceRaisedBrush` (`#1A212A`) with vertical sliders, dB readouts, preset picker, Enable/Disable toggle, and "Reset to Flat" button.
+  - Hotkey and UI integration: mapped to hotkey `E` (`CommandId.ToggleEqualizer`) and top-bar caption button `🎚`.
+  - Per-user persistence: saved across sessions via `AppSettings.Audio` in `%APPDATA%\NJPlayer\settings.json`.
+  - Automated unit tests (`tests/NJPlayer.Tests/AudioSuiteTests.cs`) covering lavfi filter chain generation, preset frequencies, boundary clamping, and reset state (58 total tests passed).
 - **Settings, Resume Playback, Single-Instance IPC & File Associations (`NJPlayer.Core` & `NJPlayer.App`)**:
   - `AppSettings` & `SettingsManager`: JSON persistence (`settings.json`) with automatic detection of portable mode (`portable.flag` next to the executable directs storage to `./data/`; otherwise uses `%APPDATA%\NJPlayer`).
   - Resume playback per file: remembers playback timestamp if past 5 seconds and not in the final 5 seconds; automatically restores playback position upon reopening with on-screen toast confirmation and clears on natural completion.

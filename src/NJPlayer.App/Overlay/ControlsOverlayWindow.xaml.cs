@@ -297,6 +297,12 @@ public partial class ControlsOverlayWindow : Window
         Toast.ShowToast(message, icon, isError);
     }
 
+    private void EqualizerButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ToggleEqualizer();
+        ShowControls();
+    }
+
     private void GeneralSettingsButton_Click(object sender, RoutedEventArgs e)
     {
         _mainWindow.OpenSettings();

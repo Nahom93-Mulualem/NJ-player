@@ -145,6 +145,12 @@ public sealed class MpvPlayer : IDisposable
         _context!.SetPropertyDouble("speed", speed);
     }
 
+    public void SetPropertyString(string name, string value)
+    {
+        EnsureInitialized();
+        _context!.SetPropertyString(name, value);
+    }
+
     public void Command(params string[] args)
     {
         EnsureInitialized();

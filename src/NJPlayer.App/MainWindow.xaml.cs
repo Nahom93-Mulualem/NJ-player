@@ -22,6 +22,8 @@ public partial class MainWindow : Window
     private readonly NJPlayer.Core.Hotkeys.HotkeyManager _hotkeyManager = new();
     private readonly NJPlayer.Core.Playlist.PlaylistManager _playlistManager = new();
     private readonly SettingsManager _settingsManager = new();
+    private NJPlayer.Features.Audio.IAudioSuite? _audioSuite;
+    private Views.AudioPanelWindow? _audioPanel;
 
     private readonly Stopwatch? _benchStopwatch;
     private bool _benchMeasured = false;
@@ -261,10 +263,59 @@ public partial class MainWindow : Window
         try
         {
             _player.Load(filePath, startPaused: false);
+            ApplyAudioFilters();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading media file: {ex.Message}", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    public NJPlayer.Features.Audio.IAudioSuite GetOrCreateAudioSuite()
+    {
+        if (_audioSuite == null)
+        {
+            _audioSuite = new NJPlayer.Features.Audio.AudioSuiteService(new NJPlayer.Features.Audio.AudioSettings(_settingsManager.Settings.Audio));
+            _audioSuite.SettingsChanged += (_, s) =>
+            {
+                _settingsManager.Settings.Audio = s.ToConfig();
+                ApplyAudioFilters();
+            };
+        }
+        return _audioSuite;
+    }
+
+    public void ApplyAudioFilters()
+    {
+        if (_player == null || !_isDllAvailable) return;
+        var filterStr = _audioSuite?.BuildMpvFilterString() ?? string.Empty;
+        try
+        {
+            _player.SetPropertyString("af", filterStr);
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Error updating audio filter: {ex.Message}");
+        }
+    }
+
+    public void ToggleEqualizer()
+    {
+        var suite = GetOrCreateAudioSuite();
+        if (_audioPanel == null)
+        {
+            _audioPanel = new Views.AudioPanelWindow(suite) { Owner = this };
+        }
+
+        if (_audioPanel.IsVisible)
+        {
+            _audioPanel.Hide();
+        }
+        else
+        {
+            _audioPanel.Show();
+            _audioPanel.Activate();
+            _overlay?.ShowToast("Equalizer", "🎚");
         }
     }
 
@@ -608,6 +659,10 @@ public partial class MainWindow : Window
                 _overlay?.ShowToast(Topmost ? "Always on Top: ON" : "Always on Top: OFF", "📌");
                 break;
 
+            case NJPlayer.Core.Hotkeys.CommandId.ToggleEqualizer:
+                ToggleEqualizer();
+                break;
+
             case NJPlayer.Core.Hotkeys.CommandId.JumpToStart:
                 _player?.Seek(0, exact: true);
                 _overlay?.ShowToast("Start", "⏮");
@@ -673,6 +728,14 @@ public partial class MainWindow : Window
                 _settingsManager.SaveWindowGeometry(RestoreBounds.Left, RestoreBounds.Top, RestoreBounds.Width, RestoreBounds.Height, false);
             }
         }
+
+        if (_audioSuite != null)
+        {
+            _settingsManager.Settings.Audio = _audioSuite.CurrentSettings.ToConfig();
+        }
+
+        _audioPanel?.ForceClose();
+        _audioPanel = null;
 
         try
         {

@@ -26,4 +26,7 @@ public sealed class AppSettings
     // Recent files & per-file resume tracking
     public List<string> RecentFiles { get; set; } = new();
     public Dictionary<string, double> ResumePositions { get; set; } = new();
+
+    // Audio & Equalizer configuration
+    public AudioConfig Audio { get; set; } = new();
 }
