@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Video Host & Playback Integration (`NJPlayer.App`)**:
+  - `VideoHost`: `HwndHost` subclass creating a Win32 child window with `WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN`, passing its handle (`wid`) to mpv for zero-copy native video rendering.
+  - Video playback integration with `hwdec=auto-safe` (D3D11VA / NVDEC / VAAPI / Vulkan hardware decoding) and real-time active decoder query via `hwdec-current`.
+  - Drag-and-drop support on `MainWindow` for instant video file loading.
+  - Standard `Ctrl+O` hotkey and file picker dialog for opening media files.
+  - `Space` hotkey for instant play/pause cycling.
+  - Minimal telemetry and debug bar displaying active hardware decoder status (`hwdec`), file title, playback badge (`PLAYING` / `PAUSED`), and elapsed/total duration (`00:00 / 00:00`).
+  - Empty state overlay with glowing logo emblem and clear drop instructions, plus graceful fallback banner with download instructions when `libmpv-2.dll` is not yet installed.
 - **Core mpv Wrapper & Playback Engine (`NJPlayer.Core`)**:
   - `MpvNative`: P/Invoke signatures and struct definitions for `libmpv-2.dll` with 64-bit calling conventions.
   - `MpvContext`: SafeHandle wrapper managing `mpv_handle` life cycle, thread synchronization lock, and safe UTF-8 string array marshaling for `mpv_command` (zero string concatenation for paths).

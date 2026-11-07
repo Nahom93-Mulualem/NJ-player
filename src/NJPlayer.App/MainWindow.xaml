@@ -3,16 +3,66 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:NJPlayer.App.Views"
         mc:Ignorable="d"
-        Title="NJ Player" Height="540" Width="960"
+        Title="NJ Player" Height="580" Width="980"
         Icon="Assets/app.ico"
         Background="#0B0E12" Foreground="#E6EDF3"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop"
+        KeyDown="Window_KeyDown"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing">
+    
     <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="Assets/logo.png" Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-            <TextBlock Text="NJ Player" FontSize="28" FontWeight="SemiBold" Foreground="#00E5FF" HorizontalAlignment="Center"/>
-            <TextBlock Text="Fast. Dark. Yours." FontSize="14" Foreground="#8B98A5" HorizontalAlignment="Center" Margin="0,8,0,0"/>
-        </StackPanel>
+        <!-- mpv child window host -->
+        <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+        <!-- Empty State Placeholder (Visible when no video is playing) -->
+        <Border x:Name="EmptyStateOverlay" Background="#0B0E12" Visibility="Visible">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Image Source="Assets/logo.png" Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                <TextBlock Text="NJ Player" FontSize="28" FontWeight="SemiBold" Foreground="#00E5FF" HorizontalAlignment="Center"/>
+                <TextBlock Text="Drop a video file here or press Ctrl+O" FontSize="14" Foreground="#8B98A5" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+
+                <!-- Missing libmpv notice (hidden by default, shown if DLL is not in libs/ or app directory) -->
+                <Border x:Name="DllNoticeBorder" Background="#1A212A" BorderBrush="#FF5C6C" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,24,0,0" Visibility="Collapsed" MaxWidth="520">
+                    <StackPanel>
+                        <TextBlock Text="⚠️ libmpv-2.dll Not Found" FontWeight="SemiBold" Foreground="#FF5C6C" FontSize="13"/>
+                        <TextBlock Text="To enable video playback, download 64-bit libmpv-2.dll and place it into the 'libs' folder or directly next to the exe." TextWrapping="Wrap" Foreground="#E6EDF3" FontSize="12" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- Minimal Debug & Telemetry Bar (Design token styled: surface at 85% opacity, accent highlights) -->
+        <Border x:Name="DebugBar" VerticalAlignment="Bottom" Background="#D912171D" BorderBrush="#252E39" BorderThickness="0,1,0,0" Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Current file title and status -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusBadge" Text="IDLE" FontWeight="SemiBold" FontSize="11" Foreground="#001418" Background="#00E5FF" Padding="6,2" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="FileTitleText" Text="No file loaded" Foreground="#E6EDF3" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="450" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Time position / Duration display -->
+                <TextBlock Grid.Column="1" x:Name="TimeDebugText" Text="00:00 / 00:00" FontFamily="Consolas, Cascadia Mono, monospace" FontSize="12" Foreground="#8B98A5" VerticalAlignment="Center" Margin="16,0"/>
+
+                <!-- Hardware decoding status & Open File button -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#1A212A" BorderBrush="#252E39" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,12,0">
+                        <TextBlock x:Name="HwdecText" Text="hwdec: checking..." FontSize="11" Foreground="#00E5FF" FontFamily="Consolas, Cascadia Mono, monospace"/>
+                    </Border>
+                    <Button Content="Open (Ctrl+O)" Click="OpenFile_Click" Background="#1A212A" Foreground="#E6EDF3" BorderBrush="#252E39" BorderThickness="1" Padding="12,4" Cursor="Hand" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

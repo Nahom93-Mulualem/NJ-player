@@ -48,6 +48,7 @@ public sealed class MpvPlayer : IDisposable
     public bool IsPaused => _isPaused;
     public double Volume => _volume;
     public double Speed => _speed;
+    public string? HardwareDecoder => _context?.GetPropertyString("hwdec-current");
     public MpvContext? Context => _context;
 
     public void Initialize(Action<MpvOptionBuilder>? configureOptions = null)
