@@ -1,0 +1,41 @@
+<UserControl x:Class="NJPlayer.App.Views.ToastOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Bottom"
+             Margin="0,0,0,90"
+             IsHitTestVisible="False"
+             Opacity="0">
+
+    <Border x:Name="ToastBorder"
+            Background="{StaticResource SurfaceRaisedBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusMd}"
+            Padding="16,8">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="20" ShadowDepth="6" Opacity="0.6" />
+        </Border.Effect>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- Toast Icon -->
+            <TextBlock x:Name="ToastIcon"
+                       Text="⚡"
+                       FontSize="13"
+                       Foreground="{StaticResource AccentBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,0" />
+
+            <!-- Toast Message -->
+            <TextBlock x:Name="ToastText"
+                       Text="Speed 1.1x"
+                       FontFamily="{StaticResource UiFont}"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextBrush}"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+    </Border>
+</UserControl>

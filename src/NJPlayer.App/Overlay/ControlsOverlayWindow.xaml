@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:NJPlayer.App.Views"
         mc:Ignorable="d"
         Title="Controls Overlay"
         WindowStyle="None"
@@ -46,8 +47,11 @@
                            HorizontalAlignment="Left"
                            Margin="8,0"/>
 
-                <!-- Window Buttons (Always on top, Minimize, Maximize, Close) -->
+                <!-- Window Buttons (Settings, Always on top, Minimize, Maximize, Close) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="SettingsButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Hotkey Settings" Click="SettingsButton_Click">
+                        <TextBlock Text="⌨" FontSize="12" />
+                    </Button>
                     <Button x:Name="PinButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Always on Top (T)" Click="PinButton_Click">
                         <TextBlock x:Name="PinIcon" Text="📌" FontSize="11" />
                     </Button>
@@ -76,17 +80,9 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Row 0: Seekbar (flex) -->
+                <!-- Row 0: Custom Seekbar (flex) with hover thumbnail preview -->
                 <Grid Grid.Row="0" Margin="0,0,0,6">
-                    <Slider x:Name="SeekSlider"
-                            Style="{StaticResource PlayerSliderStyle}"
-                            Minimum="0"
-                            Maximum="100"
-                            Value="0"
-                            Focusable="True"
-                            PreviewMouseDown="SeekSlider_PreviewMouseDown"
-                            PreviewMouseUp="SeekSlider_PreviewMouseUp"
-                            ValueChanged="SeekSlider_ValueChanged" />
+                    <views:PlayerSeekbar x:Name="Seekbar" SeekRequested="Seekbar_SeekRequested" />
                 </Grid>
 
                 <!-- Row 1: Left controls, time labels, right controls -->
@@ -146,6 +142,8 @@
                 </Grid>
             </Grid>
         </Border>
+        <!-- On-Screen Notification Toast (bottom-center, auto-hide 2s per DESIGN.md) -->
+        <views:ToastOverlay x:Name="Toast" />
     </Grid>
 </Window>
 

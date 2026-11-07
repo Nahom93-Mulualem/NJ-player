@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Data-Driven Hotkey System & On-Screen Toasts (`NJPlayer.Core` & `NJPlayer.App`)**:
+  - `CommandId`: Complete enum mapping all player actions specified in `DESIGN.md` Section 10 (Space for play/pause, M for mute, arrow keys for seeking/volume, F for fullscreen, [ / ] for speed, Z/X for subtitle delay, etc.).
+  - `HotkeyBinding` and `HotkeyManager`: Centralized keyboard gesture normalization, fast command dispatch, conflict detection, and JSON persistence (`%APPDATA%\NJPlayer\hotkeys.json`).
+  - `ToastOverlay`: On-screen notification pill positioned bottom-center on `SurfaceRaisedBrush` (`#1A212A`) with 2.0s auto-hide timer, displaying feedback for volume %, speed, seek steps, subtitle delay, and system status.
+  - `HotkeySettingsWindow`: Dark dialog on `surface-raised` with 12px corner radius (`lg`), drop shadow, live conflict detection banner, real-time key recording, and "Reset to Defaults".
+  - Automated unit tests (`tests/NJPlayer.Tests/HotkeyTests.cs`) covering default spec hotkey coverage, modifier normalization, conflict detection, and JSON serialization (41 total tests passed).
+- **Custom Seekbar & Hover Thumbnail Preview (`NJPlayer.App` & `NJPlayer.Core`)**:
+  - `PlayerSeekbar`: Custom control matching `DESIGN.md` Section 4 with 4px background track (`BorderBrush`), buffered range track (`TextMutedBrush` at 35%), and played range track (`AccentBrush`).
+  - Smooth 120ms grow-on-hover transition enlarging track from 4px to 8px and revealing a 14px cyan thumb.
+  - Chapter gaps support rendering visual dividers for chapter markers along the track.
+  - Hover preview popup with 160x90 thumbnail frame, 8px corner radius (`md`), shadow, and instant time label clamped inside window bounds.
+  - `FfmpegThumbnailService`: Background extraction using external `ffmpeg.exe` via `ProcessStartInfo.ArgumentList` with low priority (`BelowNormal`), cancellation tokens, and 80ms debounce.
+  - In-memory 5-second time bucket cache (`(filePath, bucket_N)`) preventing redundant process spawns and disk reads.
+  - Live scrubbing with non-exact fast seeks during drag and a single exact seek on release.
+  - Real-time seek latency stopwatch logging (`[NJPlayer Seek Latency]`).
+  - Full keyboard support on seekbar (Left/Right for -/+5s, Shift+Left/Right for -/+1s, Ctrl+Left/Right for -/+30s) with visible accent focus ring.
+  - Automated unit tests (`tests/NJPlayer.Tests/ThumbnailTests.cs`) covering 5-second time bucket logic and cache clearing (32 total tests passed).
 - **Frameless Window & Airspace Controls Overlay (`NJPlayer.App`)**:
   - `Themes/Colors.xaml`: All design tokens from `DESIGN.md` (`BgBrush` `#0B0E12`, `SurfaceBrush` `#12171D`, `Surface85Brush` `#D912171D`, `AccentBrush` `#00E5FF`, `DangerBrush` `#FF5C6C`, typography, radii).
   - `Themes/Controls.xaml`: Frameless window caption buttons (with red hover on close), 36px icon buttons, primary buttons, and accent sliders.
@@ -18,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 72px Bottom Bar with playback controls (play/pause, stop), time display, seekbar scrubbing (fast seek while dragging, exact seek on release), volume slider, and fullscreen toggle.
   - 2.5-second auto-hide timer (`controls-autohide`) with 120ms fade in/out transitions (`fast`), auto-hiding the mouse cursor in fullscreen mode.
 - **Video Host & Playback Integration (`NJPlayer.App`)**:
-  - `VideoHost`: `HwndHost` subclass creating a Win32 child window with `WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN`, passing its handle (`wid`) to mpv for zero-copy native video rendering.
+  - `VideoHost`: `HwndHost` subclass creating a Win32 child window with `WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE`, passing its handle (`wid`) to mpv for zero-copy native video rendering.
   - Video playback integration with `hwdec=auto-safe` (D3D11VA / NVDEC / VAAPI / Vulkan hardware decoding) and real-time active decoder query via `hwdec-current`.
   - Drag-and-drop support on `MainWindow` for instant video file loading.
   - Standard `Ctrl+O` hotkey and file picker dialog for opening media files.

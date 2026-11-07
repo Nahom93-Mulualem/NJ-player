@@ -79,9 +79,10 @@ public partial class ControlsOverlayWindow : Window
         MaxIcon.Text = _mainWindow.WindowState == WindowState.Maximized ? "❐" : "⬜";
     }
 
-    public void UpdateTitle(string title)
+    public void UpdateTitle(string title, string? filePath = null)
     {
         OverlayTitleText.Text = string.IsNullOrWhiteSpace(title) ? "NJ Player - Fast. Dark. Yours." : title;
+        Seekbar.CurrentFilePath = filePath;
     }
 
     public void NotifyMouseMove()
@@ -161,11 +162,7 @@ public partial class ControlsOverlayWindow : Window
         {
             var dur = _player?.Duration ?? TimeSpan.Zero;
             UpdateTimeDisplay(pos, dur);
-
-            if (!_isUserScrubbing && dur.TotalSeconds > 0)
-            {
-                SeekSlider.Value = (pos.TotalSeconds / dur.TotalSeconds) * 100.0;
-            }
+            Seekbar.PositionSeconds = pos.TotalSeconds;
         });
     }
 
@@ -175,6 +172,7 @@ public partial class ControlsOverlayWindow : Window
         {
             var pos = _player?.Position ?? TimeSpan.Zero;
             UpdateTimeDisplay(pos, dur);
+            Seekbar.DurationSeconds = dur.TotalSeconds;
         });
     }
 
@@ -210,12 +208,18 @@ public partial class ControlsOverlayWindow : Window
         Dispatcher.InvokeAsync(() =>
         {
             PlayPauseIcon.Text = "▶";
-            SeekSlider.Value = 0;
+            Seekbar.PositionSeconds = 0;
             ShowControls();
         });
     }
 
     // --- Interactive Control Handlers ---
+
+    private void Seekbar_SeekRequested(object? sender, Views.SeekEventArgs e)
+    {
+        _player?.Seek(e.TargetSeconds, exact: e.IsExact);
+        RestartAutoHideTimer();
+    }
 
     private void PlayPause_Click(object sender, RoutedEventArgs e)
     {
@@ -248,40 +252,6 @@ public partial class ControlsOverlayWindow : Window
         _player?.SetVolume(e.NewValue);
     }
 
-    private void SeekSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        _isUserScrubbing = true;
-        _autoHideTimer.Stop();
-    }
-
-    private void SeekSlider_PreviewMouseUp(object sender, MouseButtonEventArgs e)
-    {
-        if (_isUserScrubbing && _player != null)
-        {
-            _isUserScrubbing = false;
-            var dur = _player.Duration.TotalSeconds;
-            if (dur > 0)
-            {
-                var targetSeconds = (SeekSlider.Value / 100.0) * dur;
-                _player.Seek(targetSeconds, exact: true);
-            }
-            RestartAutoHideTimer();
-        }
-    }
-
-    private void SeekSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_isUserScrubbing && _player != null)
-        {
-            var dur = _player.Duration.TotalSeconds;
-            if (dur > 0)
-            {
-                var targetSeconds = (e.NewValue / 100.0) * dur;
-                _player.Seek(targetSeconds, exact: false);
-            }
-        }
-    }
-
     private void FullscreenButton_Click(object sender, RoutedEventArgs e)
     {
         _mainWindow.ToggleFullscreen();
@@ -300,6 +270,17 @@ public partial class ControlsOverlayWindow : Window
         {
             _mainWindow.DragMove();
         }
+    }
+
+    public void ShowToast(string message, string icon = "⚡", bool isError = false)
+    {
+        Toast.ShowToast(message, icon, isError);
+    }
+
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenHotkeySettings();
+        ShowControls();
     }
 
     private void PinButton_Click(object sender, RoutedEventArgs e)
