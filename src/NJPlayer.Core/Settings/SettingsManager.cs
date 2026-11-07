@@ -152,3 +152,4 @@ public sealed class SettingsManager
         _settings.IsWindowMaximized = isMaximized;
     }
 }
+

@@ -97,3 +97,4 @@ public class AudioSuiteTests
         Assert.Equal(string.Empty, suite.BuildMpvFilterString());
     }
 }
+

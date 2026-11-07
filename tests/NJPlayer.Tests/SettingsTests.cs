@@ -122,3 +122,4 @@ public class SettingsTests : IDisposable
         Assert.Equal(3, manager.Settings.RecentFiles.Count);
     }
 }
+

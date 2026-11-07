@@ -152,3 +152,4 @@ public sealed class AudioSuiteService : IAudioSuite
         SettingsChanged?.Invoke(this, _settings);
     }
 }
+

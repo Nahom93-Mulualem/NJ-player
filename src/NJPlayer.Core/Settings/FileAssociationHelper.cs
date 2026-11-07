@@ -49,3 +49,4 @@ public static class FileAssociationHelper
         return sb.ToString();
     }
 }
+
