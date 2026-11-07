@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 using NJPlayer.App.Overlay;
 using NJPlayer.Core.Playback;
+using NJPlayer.Core.Settings;
 
 namespace NJPlayer.App;
 
@@ -17,6 +20,14 @@ public partial class MainWindow : Window
     private MpvPlayer? _player;
     private ControlsOverlayWindow? _overlay;
     private readonly NJPlayer.Core.Hotkeys.HotkeyManager _hotkeyManager = new();
+    private readonly NJPlayer.Core.Playlist.PlaylistManager _playlistManager = new();
+    private readonly SettingsManager _settingsManager = new();
+
+    private readonly Stopwatch? _benchStopwatch;
+    private bool _benchMeasured = false;
+    private string? _currentFilePath;
+    private double? _pendingResumePosition;
+
     private bool _isDllAvailable = true;
     private bool _isFullscreen = false;
     private double _lastNonMuteVolume = 100;
@@ -27,14 +38,45 @@ public partial class MainWindow : Window
     private ResizeMode _savedResize = ResizeMode.CanResize;
 
     public bool IsFullscreen => _isFullscreen;
+    public SettingsManager SettingsManager => _settingsManager;
 
-    public MainWindow()
+    public MainWindow(Stopwatch? benchStopwatch = null)
     {
+        _benchStopwatch = benchStopwatch;
         InitializeComponent();
+
+        // Restore window geometry if enabled
+        if (_settingsManager.Settings.RememberWindowPosition)
+        {
+            RestoreWindowGeometry();
+        }
 
         LocationChanged += (_, _) => _overlay?.SyncWithMainWindow();
         SizeChanged += (_, _) => _overlay?.SyncWithMainWindow();
         StateChanged += MainWindow_StateChanged;
+    }
+
+    private void RestoreWindowGeometry()
+    {
+        var s = _settingsManager.Settings;
+        var virtualWidth = SystemParameters.VirtualScreenWidth;
+        var virtualHeight = SystemParameters.VirtualScreenHeight;
+
+        if (s.WindowWidth >= 400 && s.WindowHeight >= 300 &&
+            s.WindowLeft >= -s.WindowWidth + 100 && s.WindowLeft < virtualWidth - 100 &&
+            s.WindowTop >= 0 && s.WindowTop < virtualHeight - 100)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = s.WindowLeft;
+            Top = s.WindowTop;
+            Width = s.WindowWidth;
+            Height = s.WindowHeight;
+        }
+
+        if (s.IsWindowMaximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
     }
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
@@ -65,25 +107,86 @@ public partial class MainWindow : Window
         {
             _overlay.AttachPlayer(_player);
         }
+
+        try
+        {
+            _playlistManager.LoadFromJson();
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Could not load playlist.json: {ex.Message}");
+        }
+
+        _overlay.AttachPlaylist(_playlistManager);
+        _playlistManager.CurrentItemChanged += PlaylistManager_CurrentItemChanged;
+
         _overlay.Show();
         _overlay.SyncWithMainWindow();
+
+        UpdateRecentFilesList();
+
+        // Measure benchmark startup to first window load
+        if (_benchStopwatch != null && !_benchMeasured)
+        {
+            _benchMeasured = true;
+            _benchStopwatch.Stop();
+            var ms = _benchStopwatch.ElapsedMilliseconds;
+            Trace.WriteLine($"[BENCH] Cold start to first window render: {ms} ms");
+            Console.WriteLine($"[BENCH] Cold start to first window render: {ms} ms");
+            _overlay?.ShowToast($"Cold Start: {ms} ms", "⚡");
+        }
+    }
+
+    private void UpdateRecentFilesList()
+    {
+        var existing = _settingsManager.Settings.RecentFiles
+            .Where(File.Exists)
+            .Take(5)
+            .Select(path => new
+            {
+                DisplayName = Path.GetFileName(path) ?? path,
+                FullPath = path
+            })
+            .ToList();
+
+        RecentFilesList.ItemsSource = existing;
+        RecentFilesPanel.Visibility = existing.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void RecentFile_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.Tag is string path && File.Exists(path))
+        {
+            LoadMediaFile(path);
+        }
+    }
+
+    private void PlaylistManager_CurrentItemChanged(object? sender, NJPlayer.Core.Playlist.PlaylistItem? item)
+    {
+        if (item != null)
+        {
+            Dispatcher.InvokeAsync(() => LoadMediaFile(item.FilePath));
+        }
     }
 
     private void InitializePlayer()
     {
         try
         {
+            var hwdec = _settingsManager.Settings.HardwareDecoder;
             _player = new MpvPlayer();
             _player.Initialize(options =>
             {
                 options.WithWindowHandle(PlayerHost.Hwnd);
-                options.WithHardwareDecoding("auto-safe");
+                options.WithHardwareDecoding(string.IsNullOrWhiteSpace(hwdec) ? "auto-safe" : hwdec);
                 options.WithKeepOpen(true);
                 options.WithIdle(true);
             });
 
             _player.Error += Player_Error;
-            Trace.WriteLine("[NJPlayer] mpv engine initialized with auto-safe hardware decoding.");
+            _player.EndFile += Player_EndFile;
+            _player.TimePositionChanged += Player_TimePositionChanged;
+            Trace.WriteLine($"[NJPlayer] mpv engine initialized with '{hwdec}' hardware decoding.");
         }
         catch (DllNotFoundException ex)
         {
@@ -94,6 +197,21 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Failed to initialize playback engine: {ex.Message}", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void Player_TimePositionChanged(object? sender, TimeSpan pos)
+    {
+        if (_pendingResumePosition.HasValue && _player != null)
+        {
+            var target = _pendingResumePosition.Value;
+            _pendingResumePosition = null;
+
+            Dispatcher.InvokeAsync(() =>
+            {
+                _player.Seek(target, exact: true);
+                _overlay?.ShowToast($"Resumed at {TimeSpan.FromSeconds(target):mm\\:ss}", "⏱");
+            });
         }
     }
 
@@ -115,6 +233,27 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Save position of previous file before switching
+        if (!string.IsNullOrEmpty(_currentFilePath))
+        {
+            _settingsManager.SetResumePosition(_currentFilePath, _player.Position.TotalSeconds, _player.Duration.TotalSeconds);
+        }
+
+        _currentFilePath = filePath;
+        _settingsManager.AddRecentFile(filePath);
+        UpdateRecentFilesList();
+
+        // Check for resume position
+        var savedPos = _settingsManager.GetResumePosition(filePath);
+        if (savedPos.HasValue && savedPos.Value > 5.0)
+        {
+            _pendingResumePosition = savedPos.Value;
+        }
+        else
+        {
+            _pendingResumePosition = null;
+        }
+
         var fileName = Path.GetFileName(filePath);
         EmptyStateOverlay.Visibility = Visibility.Collapsed;
         _overlay?.UpdateTitle(fileName, filePath);
@@ -126,6 +265,50 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading media file: {ex.Message}", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    public void HandleCommandLineArgs(string[] args)
+    {
+        if (args == null || args.Length == 0) return;
+
+        foreach (var arg in args)
+        {
+            if (string.IsNullOrWhiteSpace(arg)) continue;
+            if (arg.StartsWith("--", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.Equals(arg, "--bench", StringComparison.OrdinalIgnoreCase))
+                {
+                    Trace.WriteLine("[BENCH] Benchmark flag passed in arguments.");
+                }
+                continue;
+            }
+
+            if (File.Exists(arg) || Directory.Exists(arg) || arg.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || arg.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Directory.Exists(arg))
+                {
+                    _playlistManager.AddFolder(arg, recursive: true);
+                }
+                else
+                {
+                    _playlistManager.AddFile(arg);
+                }
+                LoadMediaFile(arg);
+                break;
+            }
+        }
+    }
+
+    public void OpenSettings()
+    {
+        var win = new Views.SettingsWindow(_settingsManager)
+        {
+            Owner = this
+        };
+        if (win.ShowDialog() == true)
+        {
+            _overlay?.ShowToast("Settings Saved", "⚙");
         }
     }
 
@@ -165,6 +348,27 @@ public partial class MainWindow : Window
         }
 
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private void Player_EndFile(object? sender, EndFileEventArgs e)
+    {
+        if (e.Reason == EndFileReason.Eof)
+        {
+            // Clear resume position on natural EOF completion
+            if (!string.IsNullOrEmpty(_currentFilePath))
+            {
+                _settingsManager.SetResumePosition(_currentFilePath, 0, 0);
+            }
+
+            Dispatcher.InvokeAsync(() =>
+            {
+                // Auto-advance to next playlist item
+                if (!_playlistManager.Next())
+                {
+                    _overlay?.ShowToast("Playlist Finished", "⏹");
+                }
+            });
+        }
     }
 
     private void Player_Error(object? sender, MpvErrorEventArgs e)
@@ -210,7 +414,23 @@ public partial class MainWindow : Window
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files != null && files.Length > 0)
             {
-                LoadMediaFile(files[0]);
+                var initialIndex = _playlistManager.Items.Count;
+                foreach (var file in files)
+                {
+                    if (Directory.Exists(file))
+                    {
+                        _playlistManager.AddFolder(file, recursive: true);
+                    }
+                    else if (File.Exists(file))
+                    {
+                        _playlistManager.AddFile(file);
+                    }
+                }
+
+                if (_playlistManager.CurrentIndex < 0 && _playlistManager.Items.Count > initialIndex)
+                {
+                    _playlistManager.SetCurrentIndex(initialIndex);
+                }
             }
         }
     }
@@ -232,7 +452,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var modifiers = new System.Collections.Generic.List<string>();
+        var modifiers = new List<string>();
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) modifiers.Add("Ctrl");
         if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift) modifiers.Add("Shift");
         if ((Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt) modifiers.Add("Alt");
@@ -352,6 +572,24 @@ public partial class MainWindow : Window
                 _overlay?.ShowToast("Cycle Audio Track", "🎵");
                 break;
 
+            case NJPlayer.Core.Hotkeys.CommandId.TogglePlaylist:
+                _overlay?.TogglePlaylist();
+                break;
+
+            case NJPlayer.Core.Hotkeys.CommandId.NextFile:
+                if (_playlistManager.Next())
+                {
+                    _overlay?.ShowToast("Next Track", "⏭");
+                }
+                break;
+
+            case NJPlayer.Core.Hotkeys.CommandId.PrevFile:
+                if (_playlistManager.Previous())
+                {
+                    _overlay?.ShowToast("Previous Track", "⏮");
+                }
+                break;
+
             case NJPlayer.Core.Hotkeys.CommandId.ToggleFullscreen:
                 ToggleFullscreen();
                 break;
@@ -414,6 +652,46 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // Save current resume position
+        if (_player != null && !string.IsNullOrEmpty(_currentFilePath))
+        {
+            var pos = _player.Position.TotalSeconds;
+            var dur = _player.Duration.TotalSeconds;
+            _settingsManager.SetResumePosition(_currentFilePath, pos, dur);
+        }
+
+        // Save window geometry if enabled
+        if (_settingsManager.Settings.RememberWindowPosition)
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                _settingsManager.Settings.IsWindowMaximized = true;
+            }
+            else
+            {
+                _settingsManager.Settings.IsWindowMaximized = false;
+                _settingsManager.SaveWindowGeometry(RestoreBounds.Left, RestoreBounds.Top, RestoreBounds.Width, RestoreBounds.Height, false);
+            }
+        }
+
+        try
+        {
+            _settingsManager.Save();
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Could not save settings.json: {ex.Message}");
+        }
+
+        try
+        {
+            _playlistManager.SaveToJson();
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Could not save playlist.json: {ex.Message}");
+        }
+
         _overlay?.Close();
         _overlay = null;
 

@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Settings, Resume Playback, Single-Instance IPC & File Associations (`NJPlayer.Core` & `NJPlayer.App`)**:
+  - `AppSettings` & `SettingsManager`: JSON persistence (`settings.json`) with automatic detection of portable mode (`portable.flag` next to the executable directs storage to `./data/`; otherwise uses `%APPDATA%\NJPlayer`).
+  - Resume playback per file: remembers playback timestamp if past 5 seconds and not in the final 5 seconds; automatically restores playback position upon reopening with on-screen toast confirmation and clears on natural completion.
+  - Recent files history: deduplicated list with LRU ordering, capped at 15 items, displayed with clickable quick-open buttons directly on the empty-state overlay.
+  - Single-instance IPC: robust named mutex (`Local\NJPlayer_SingleInstance_Mutex_Session`) combined with an asynchronous named pipe server (`NJPlayer_SingleInstance_Pipe_Session`) forwarding file paths and arguments from secondary launches to the primary window and bringing it to the foreground.
+  - Command-line argument handling: supports media file paths, directories, URLs, and `--bench` flag for profiling cold start timing.
+  - Window geometry memory: remembers window position, size, and maximized state across restarts, ensuring coordinates stay within visible virtual screen bounds.
+  - `SettingsWindow`: Dark dialog on `surface-raised` (`#1A212A`) matching `DESIGN.md` with toggles for resume position, hardware decoding selector (`auto-safe`, `d3d11va`, `nvdec`, `no`), storage mode info, cache clear buttons, and Inno Setup file association script preview.
+  - `FileAssociationHelper`: Generates safe Inno Setup registry script snippets for Windows Explorer integration without altering the developer's registry directly.
+  - Automated unit tests (`tests/NJPlayer.Tests/SettingsTests.cs`) covering portable mode detection, AppData path resolution, 5-second boundary rules, recent files deduplication, and JSON roundtrip (51 total tests passed).
+- **Playlist Drawer & Management (`NJPlayer.Core` & `NJPlayer.App`)**:
+  - `PlaylistManager`: Independent managed playlist engine supporting recursive directory scanning, reordering, true Fisher-Yates shuffle, repeat modes (`None`, `RepeatAll`, `RepeatOne`), M3U/M3U8 import/export, and automatic persistence (`%APPDATA%\NJPlayer\playlist.json`).
+  - `PlaylistDrawer`: 340px slide-in drawer on `SurfaceBrush` (`#12171D`) with 180ms cubic-bezier easing (`base`) overlaying the right side without resizing video.
+  - 44px playlist rows with title, duration, drag handle, and cyan accent active indicator bar.
+  - Drag-and-drop support: drop external media files/folders directly onto drawer or window, and drag-to-reorder items within the playlist.
+  - Full-text instant search filtering playlist items in real time.
+  - Right-click context menu: Play, Remove, Show in Folder, and Media Properties.
+  - Auto-advance on end of file: automatically plays next track on `MpvPlayer.EndFile` (with EOF reason), respecting shuffle and repeat modes.
+  - Automated unit tests (`tests/NJPlayer.Tests/PlaylistTests.cs`) covering collection mutations, reordering, repeat modes, shuffle, and M3U roundtrip (46 total tests passed).
 - **Data-Driven Hotkey System & On-Screen Toasts (`NJPlayer.Core` & `NJPlayer.App`)**:
   - `CommandId`: Complete enum mapping all player actions specified in `DESIGN.md` Section 10 (Space for play/pause, M for mute, arrow keys for seeking/volume, F for fullscreen, [ / ] for speed, Z/X for subtitle delay, etc.).
   - `HotkeyBinding` and `HotkeyManager`: Centralized keyboard gesture normalization, fast command dispatch, conflict detection, and JSON persistence (`%APPDATA%\NJPlayer\hotkeys.json`).

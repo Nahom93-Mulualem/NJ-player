@@ -40,6 +40,18 @@
                     <TextBlock Text="NJ Player" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
                     <TextBlock Text="Drop a video file here or press Ctrl+O" FontSize="14" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
 
+                    <!-- Recent Files List -->
+                    <StackPanel x:Name="RecentFilesPanel" Margin="0,20,0,0" HorizontalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock Text="RECENT FILES" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                        <ItemsControl x:Name="RecentFilesList" HorizontalAlignment="Center">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding DisplayName}" Tag="{Binding FullPath}" Style="{StaticResource TextGhostButton}" HorizontalAlignment="Center" Margin="0,1" Click="RecentFile_Click" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
                     <!-- Missing libmpv notice (hidden by default, shown if DLL is not in libs/ or app directory) -->
                     <Border x:Name="DllNoticeBorder" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,24,0,0" Visibility="Collapsed" MaxWidth="520">
                         <StackPanel>

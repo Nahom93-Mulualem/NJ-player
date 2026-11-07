@@ -127,8 +127,8 @@ public partial class ControlsOverlayWindow : Window
     {
         _autoHideTimer.Stop();
 
-        // Do not auto-hide while scrubbing the seekbar or if mouse is currently over interactive controls
-        if (_isUserScrubbing || TopBar.IsMouseOver || BottomBar.IsMouseOver)
+        // Do not auto-hide while scrubbing the seekbar, drawer is open, or mouse is over interactive controls
+        if (_isUserScrubbing || TopBar.IsMouseOver || BottomBar.IsMouseOver || Drawer.IsOpen || Drawer.IsMouseOver)
         {
             RestartAutoHideTimer();
             return;
@@ -272,9 +272,35 @@ public partial class ControlsOverlayWindow : Window
         }
     }
 
+    public void AttachPlaylist(NJPlayer.Core.Playlist.PlaylistManager manager)
+    {
+        Drawer.AttachManager(manager);
+        Drawer.ItemSelected += (_, item) =>
+        {
+            _mainWindow.LoadMediaFile(item.FilePath);
+        };
+    }
+
+    public void TogglePlaylist()
+    {
+        Drawer.ToggleDrawer();
+        ShowControls();
+    }
+
+    private void PlaylistButton_Click(object sender, RoutedEventArgs e)
+    {
+        TogglePlaylist();
+    }
+
     public void ShowToast(string message, string icon = "⚡", bool isError = false)
     {
         Toast.ShowToast(message, icon, isError);
+    }
+
+    private void GeneralSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenSettings();
+        ShowControls();
     }
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)

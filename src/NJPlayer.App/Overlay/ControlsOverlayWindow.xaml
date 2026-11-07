@@ -47,8 +47,11 @@
                            HorizontalAlignment="Left"
                            Margin="8,0"/>
 
-                <!-- Window Buttons (Settings, Always on top, Minimize, Maximize, Close) -->
+                <!-- Window Buttons (Settings, Hotkeys, Always on top, Minimize, Maximize, Close) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="GeneralSettingsButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Settings" Click="GeneralSettingsButton_Click">
+                        <TextBlock Text="⚙" FontSize="11" />
+                    </Button>
                     <Button x:Name="SettingsButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Hotkey Settings" Click="SettingsButton_Click">
                         <TextBlock Text="⌨" FontSize="12" />
                     </Button>
@@ -134,6 +137,11 @@
                                 Margin="4,0,10,0"
                                 ValueChanged="VolumeSlider_ValueChanged" />
 
+                        <!-- Playlist Button -->
+                        <Button x:Name="PlaylistButton" Style="{StaticResource IconButton}" ToolTip="Playlist (Ctrl+L)" Click="PlaylistButton_Click" Margin="0,0,4,0">
+                            <TextBlock x:Name="PlaylistIcon" Text="📋" FontSize="13" />
+                        </Button>
+
                         <!-- Fullscreen Button -->
                         <Button x:Name="FullscreenButton" Style="{StaticResource IconButton}" ToolTip="Fullscreen (F)" Click="FullscreenButton_Click">
                             <TextBlock x:Name="FullscreenIcon" Text="⛶" FontSize="13" />
@@ -142,6 +150,9 @@
                 </Grid>
             </Grid>
         </Border>
+        <!-- Playlist Slide-In Drawer (340px from right edge per DESIGN.md section 5) -->
+        <views:PlaylistDrawer x:Name="Drawer" Visibility="Collapsed" />
+
         <!-- On-Screen Notification Toast (bottom-center, auto-hide 2s per DESIGN.md) -->
         <views:ToastOverlay x:Name="Toast" />
     </Grid>
