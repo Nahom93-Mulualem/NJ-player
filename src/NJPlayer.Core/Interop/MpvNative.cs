@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace NJPlayer.Core.Interop;
 
+public delegate void MpvWakeupCallback(IntPtr d);
+
 internal static class MpvNative
 {
     private const string LibName = "libmpv-2.dll";
@@ -66,6 +68,9 @@ internal static class MpvNative
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mpv_wakeup")]
     public static extern void Wakeup(IntPtr ctx);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mpv_set_wakeup_callback")]
+    public static extern void SetWakeupCallback(IntPtr ctx, MpvWakeupCallback cb, IntPtr d);
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mpv_error_string")]
     public static extern IntPtr ErrorString(int error);
@@ -145,4 +150,3 @@ public struct MpvEventEndFile
     public int Error;
     public long PlaylistEntryId;
 }
-

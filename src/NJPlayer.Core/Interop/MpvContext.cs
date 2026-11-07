@@ -249,6 +249,15 @@ public sealed class MpvContext : SafeHandleZeroOrMinusOneIsInvalid
         }
     }
 
+    public void SetWakeupCallback(MpvWakeupCallback callback, IntPtr data)
+    {
+        lock (_syncLock)
+        {
+            ThrowIfInvalid();
+            MpvNative.SetWakeupCallback(handle, callback, data);
+        }
+    }
+
     private void ThrowIfInvalid()
     {
         if (IsInvalid || IsClosed)
