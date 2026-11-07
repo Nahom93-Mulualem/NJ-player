@@ -4,27 +4,57 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
+using NJPlayer.App.Overlay;
 using NJPlayer.Core.Playback;
 
 namespace NJPlayer.App;
 
 /// <summary>
-/// Main video playback window hosting the mpv child window and debug telemetry.
+/// Frameless main player window hosting the Win32 mpv video surface and managing the airspace controls overlay.
 /// </summary>
 public partial class MainWindow : Window
 {
     private MpvPlayer? _player;
+    private ControlsOverlayWindow? _overlay;
     private bool _isDllAvailable = true;
-    private string _currentFilePath = string.Empty;
+    private bool _isFullscreen = false;
+
+    private WindowState _savedState = WindowState.Normal;
+    private WindowStyle _savedStyle = WindowStyle.SingleBorderWindow;
+    private ResizeMode _savedResize = ResizeMode.CanResize;
+
+    public bool IsFullscreen => _isFullscreen;
 
     public MainWindow()
     {
         InitializeComponent();
+
+        LocationChanged += (_, _) => _overlay?.SyncWithMainWindow();
+        SizeChanged += (_, _) => _overlay?.SyncWithMainWindow();
+        StateChanged += MainWindow_StateChanged;
+    }
+
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        WindowOutline.BorderThickness = WindowState == WindowState.Maximized || _isFullscreen
+            ? new Thickness(0)
+            : new Thickness(1);
+
+        _overlay?.SyncWithMainWindow();
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         InitializePlayer();
+
+        // Create and display the airspace-safe controls overlay window
+        _overlay = new ControlsOverlayWindow(this);
+        if (_player != null)
+        {
+            _overlay.AttachPlayer(_player);
+        }
+        _overlay.Show();
+        _overlay.SyncWithMainWindow();
     }
 
     private void InitializePlayer()
@@ -40,23 +70,13 @@ public partial class MainWindow : Window
                 options.WithIdle(true);
             });
 
-            _player.TimePositionChanged += Player_TimePositionChanged;
-            _player.DurationChanged += Player_DurationChanged;
-            _player.PauseChanged += Player_PauseChanged;
-            _player.EndFile += Player_EndFile;
             _player.Error += Player_Error;
-
-            HwdecText.Text = "hwdec: auto-safe (ready)";
             Trace.WriteLine("[NJPlayer] mpv engine initialized with auto-safe hardware decoding.");
         }
         catch (DllNotFoundException ex)
         {
             _isDllAvailable = false;
             DllNoticeBorder.Visibility = Visibility.Visible;
-            HwdecText.Text = "hwdec: missing libmpv-2.dll";
-            StatusBadge.Text = "NO MPV";
-            StatusBadge.Background = System.Windows.Media.Brushes.Crimson;
-            StatusBadge.Foreground = System.Windows.Media.Brushes.White;
             Trace.WriteLine($"[NJPlayer] {ex.Message}");
         }
         catch (Exception ex)
@@ -83,15 +103,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        _currentFilePath = filePath;
-        FileTitleText.Text = Path.GetFileName(filePath);
+        var fileName = Path.GetFileName(filePath);
         EmptyStateOverlay.Visibility = Visibility.Collapsed;
-        StatusBadge.Text = "LOADING";
+        _overlay?.UpdateTitle(fileName);
 
         try
         {
             _player.Load(filePath, startPaused: false);
-            CheckHardwareDecoder();
         }
         catch (Exception ex)
         {
@@ -99,78 +117,42 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CheckHardwareDecoder()
+    public void ToggleFullscreen()
     {
-        if (_player == null) return;
-
-        Dispatcher.InvokeAsync(async () =>
+        if (!_isFullscreen)
         {
-            // Give mpv a brief moment to initialize the codec and negotiate hardware decoding
-            await System.Threading.Tasks.Task.Delay(300);
+            _savedState = WindowState;
+            _savedStyle = WindowStyle;
+            _savedResize = ResizeMode;
 
-            var activeHwdec = _player.HardwareDecoder ?? "none/auto";
-            HwdecText.Text = $"hwdec: {activeHwdec}";
-            Trace.WriteLine($"[NJPlayer] Active hardware decoder reported by mpv: '{activeHwdec}' for '{Path.GetFileName(_currentFilePath)}'");
-        });
-    }
-
-    private void Player_TimePositionChanged(object? sender, TimeSpan pos)
-    {
-        Dispatcher.InvokeAsync(() =>
-        {
-            UpdateTimeDisplay(pos, _player?.Duration ?? TimeSpan.Zero);
-            CheckHardwareDecoderOnFirstFrame();
-        });
-    }
-
-    private bool _hwdecLogged = false;
-    private void CheckHardwareDecoderOnFirstFrame()
-    {
-        if (!_hwdecLogged && _player != null)
-        {
-            var hwdec = _player.HardwareDecoder;
-            if (!string.IsNullOrEmpty(hwdec) && !string.Equals(hwdec, "no", StringComparison.OrdinalIgnoreCase))
-            {
-                _hwdecLogged = true;
-                HwdecText.Text = $"hwdec: {hwdec}";
-                Trace.WriteLine($"[NJPlayer] Playback confirmed with active hardware decoder: {hwdec}");
-            }
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Normal;
+            WindowState = WindowState.Maximized;
+            WindowOutline.BorderThickness = new Thickness(0);
+            _isFullscreen = true;
         }
-    }
-
-    private void Player_DurationChanged(object? sender, TimeSpan dur)
-    {
-        Dispatcher.InvokeAsync(() =>
+        else
         {
-            UpdateTimeDisplay(_player?.Position ?? TimeSpan.Zero, dur);
-        });
+            WindowStyle = _savedStyle;
+            ResizeMode = _savedResize;
+            WindowState = _savedState;
+            WindowOutline.BorderThickness = new Thickness(1);
+            _isFullscreen = false;
+        }
+
+        _overlay?.SyncWithMainWindow();
     }
 
-    private void UpdateTimeDisplay(TimeSpan pos, TimeSpan dur)
+    public void ToggleMaximize()
     {
-        var posStr = pos.TotalHours >= 1 ? pos.ToString(@"hh\:mm\:ss") : pos.ToString(@"mm\:ss");
-        var durStr = dur.TotalHours >= 1 ? dur.ToString(@"hh\:mm\:ss") : dur.ToString(@"mm\:ss");
-        TimeDebugText.Text = $"{posStr} / {durStr}";
-    }
-
-    private void Player_PauseChanged(object? sender, bool isPaused)
-    {
-        Dispatcher.InvokeAsync(() =>
+        if (_isFullscreen)
         {
-            StatusBadge.Text = isPaused ? "PAUSED" : "PLAYING";
-            StatusBadge.Background = isPaused
-                ? (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#8B98A5")!
-                : (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#00E5FF")!;
-        });
-    }
+            ToggleFullscreen();
+            return;
+        }
 
-    private void Player_EndFile(object? sender, EndFileEventArgs e)
-    {
-        Dispatcher.InvokeAsync(() =>
-        {
-            StatusBadge.Text = e.Reason == EndFileReason.Eof ? "COMPLETED" : "STOPPED";
-            _hwdecLogged = false;
-        });
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
     private void Player_Error(object? sender, MpvErrorEventArgs e)
@@ -181,12 +163,7 @@ public partial class MainWindow : Window
         });
     }
 
-    private void OpenFile_Click(object sender, RoutedEventArgs e)
-    {
-        PromptOpenFile();
-    }
-
-    private void PromptOpenFile()
+    public void PromptOpenFile()
     {
         var dialog = new OpenFileDialog
         {
@@ -233,6 +210,16 @@ public partial class MainWindow : Window
             PromptOpenFile();
             e.Handled = true;
         }
+        else if (e.Key == Key.F || e.Key == Key.Enter)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape && _isFullscreen)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+        }
         else if (e.Key == Key.Space)
         {
             _player?.TogglePause();
@@ -240,8 +227,16 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Window_MouseMove(object sender, MouseEventArgs e)
+    {
+        _overlay?.NotifyMouseMove();
+    }
+
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        _overlay?.Close();
+        _overlay = null;
+
         _player?.Dispose();
         _player = null;
     }

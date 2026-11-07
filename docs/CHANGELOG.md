@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Frameless Window & Airspace Controls Overlay (`NJPlayer.App`)**:
+  - `Themes/Colors.xaml`: All design tokens from `DESIGN.md` (`BgBrush` `#0B0E12`, `SurfaceBrush` `#12171D`, `Surface85Brush` `#D912171D`, `AccentBrush` `#00E5FF`, `DangerBrush` `#FF5C6C`, typography, radii).
+  - `Themes/Controls.xaml`: Frameless window caption buttons (with red hover on close), 36px icon buttons, primary buttons, and accent sliders.
+  - Frameless `MainWindow` with WPF `WindowChrome` maintaining native Windows snap layouts, resize handles, taskbar integration, and a 1px border outline.
+  - `ControlsOverlayWindow`: Transparent owned window solving WPF airspace over the Win32 video child window.
+  - Real-time overlay synchronization on window move, resize, minimize, maximize, and DPI changes.
+  - 36px Top Bar with app icon, media title, always-on-top pin toggle, and window control buttons.
+  - 72px Bottom Bar with playback controls (play/pause, stop), time display, seekbar scrubbing (fast seek while dragging, exact seek on release), volume slider, and fullscreen toggle.
+  - 2.5-second auto-hide timer (`controls-autohide`) with 120ms fade in/out transitions (`fast`), auto-hiding the mouse cursor in fullscreen mode.
 - **Video Host & Playback Integration (`NJPlayer.App`)**:
   - `VideoHost`: `HwndHost` subclass creating a Win32 child window with `WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN`, passing its handle (`wid`) to mpv for zero-copy native video rendering.
   - Video playback integration with `hwdec=auto-safe` (D3D11VA / NVDEC / VAAPI / Vulkan hardware decoding) and real-time active decoder query via `hwdec-current`.
