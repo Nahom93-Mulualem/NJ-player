@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Disable the shared Roslyn compiler daemon for smooth CLI builds in sandboxed/container environments -->
+    <UseSharedCompilation>false</UseSharedCompilation>
+  </PropertyGroup>
+</Project>
+

@@ -1,0 +1,35 @@
+# Build and output artifacts
+bin/
+obj/
+out/
+[Bb]uild/
+
+# Visual Studio & IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# CLI / temporary environment
+.dotnet_cli/
+*.DotSettings.user
+
+# Native binaries in libs/ (never commit binaries to git)
+libs/*.dll
+libs/*.exe
+!libs/README.txt
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Test results and coverage
+TestResults/
+coverage*.xml
+*.trx
+
