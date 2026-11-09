@@ -47,8 +47,14 @@
                            HorizontalAlignment="Left"
                            Margin="8,0"/>
 
-                <!-- Window Buttons (Equalizer, Settings, Hotkeys, Always on top, Minimize, Maximize, Close) -->
+                <!-- Window Buttons (Trimmer, Downloader, Equalizer, Settings, Hotkeys, Always on top, Minimize, Maximize, Close) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="TrimmerButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Lossless Trimmer" Click="TrimmerButton_Click">
+                        <TextBlock Text="✂" FontSize="11" />
+                    </Button>
+                    <Button x:Name="DownloaderButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Online Downloader" Click="DownloaderButton_Click">
+                        <TextBlock Text="📥" FontSize="11" />
+                    </Button>
                     <Button x:Name="EqualizerButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Equalizer (E)" Click="EqualizerButton_Click">
                         <TextBlock Text="🎚" FontSize="11" />
                     </Button>
@@ -139,6 +145,11 @@
                                 VerticalAlignment="Center"
                                 Margin="4,0,10,0"
                                 ValueChanged="VolumeSlider_ValueChanged" />
+
+                        <!-- Subtitles Button -->
+                        <Button x:Name="SubtitleButton" Style="{StaticResource IconButton}" ToolTip="Subtitles / Tracks" Click="SubtitleButton_Click" Margin="0,0,4,0">
+                            <TextBlock Text="💬" FontSize="13" />
+                        </Button>
 
                         <!-- Playlist Button -->
                         <Button x:Name="PlaylistButton" Style="{StaticResource IconButton}" ToolTip="Playlist (Ctrl+L)" Click="PlaylistButton_Click" Margin="0,0,4,0">

@@ -22,8 +22,14 @@ public partial class MainWindow : Window
     private readonly NJPlayer.Core.Hotkeys.HotkeyManager _hotkeyManager = new();
     private readonly NJPlayer.Core.Playlist.PlaylistManager _playlistManager = new();
     private readonly SettingsManager _settingsManager = new();
+    private readonly NJPlayer.Features.Subtitles.SubtitleService _subtitleService = new();
+    private readonly NJPlayer.Features.Trimmer.MediaTrimmerService _trimmerService = new();
+    private readonly NJPlayer.Features.Downloader.MediaDownloaderService _downloaderService = new();
     private NJPlayer.Features.Audio.IAudioSuite? _audioSuite;
     private Views.AudioPanelWindow? _audioPanel;
+    private Views.SubtitlePickerWindow? _subtitlePicker;
+    private Views.TrimmerWindow? _trimmerWindow;
+    private Views.DownloaderWindow? _downloaderWindow;
 
     private readonly Stopwatch? _benchStopwatch;
     private bool _benchMeasured = false;
@@ -90,6 +96,17 @@ public partial class MainWindow : Window
         _overlay?.SyncWithMainWindow();
     }
 
+    private const int WM_WINDOWPOSCHANGED = 0x0047;
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_WINDOWPOSCHANGED)
+        {
+            _overlay?.SyncWithMainWindow();
+        }
+        return IntPtr.Zero;
+    }
+
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         InitializePlayer();
@@ -124,6 +141,10 @@ public partial class MainWindow : Window
 
         _overlay.Show();
         _overlay.SyncWithMainWindow();
+
+        // Hook Win32 window message loop for tear-free synchronous overlay tracking
+        var source = (System.Windows.Interop.HwndSource?)PresentationSource.FromVisual(this);
+        source?.AddHook(WndProc);
 
         UpdateRecentFilesList();
 
@@ -181,6 +202,7 @@ public partial class MainWindow : Window
             {
                 options.WithWindowHandle(PlayerHost.Hwnd);
                 options.WithHardwareDecoding(string.IsNullOrWhiteSpace(hwdec) ? "auto-safe" : hwdec);
+                options.WithSubtitleDefaults();
                 options.WithKeepOpen(true);
                 options.WithIdle(true);
             });
@@ -257,6 +279,7 @@ public partial class MainWindow : Window
         }
 
         var fileName = Path.GetFileName(filePath);
+        PlayerHost.Visibility = Visibility.Visible;
         EmptyStateOverlay.Visibility = Visibility.Collapsed;
         _overlay?.UpdateTitle(fileName, filePath);
 
@@ -316,6 +339,95 @@ public partial class MainWindow : Window
             _audioPanel.Show();
             _audioPanel.Activate();
             _overlay?.ShowToast("Equalizer", "🎚");
+        }
+    }
+
+    public void OpenSubtitlePicker()
+    {
+        if (_subtitlePicker == null)
+        {
+            _subtitlePicker = new Views.SubtitlePickerWindow(_player, _subtitleService, _currentFilePath)
+            {
+                Owner = this
+            };
+            _subtitlePicker.SubtitleLoaded += name =>
+            {
+                _overlay?.ShowToast($"Subtitles: {name}", "💬");
+            };
+        }
+
+        _subtitlePicker.RefreshTracks();
+        if (_subtitlePicker.IsVisible)
+        {
+            _subtitlePicker.Hide();
+        }
+        else
+        {
+            _subtitlePicker.Show();
+            _subtitlePicker.Activate();
+            _overlay?.ShowToast("Subtitles", "💬");
+        }
+    }
+
+    public void OpenTrimmer()
+    {
+        if (string.IsNullOrWhiteSpace(_currentFilePath) || !File.Exists(_currentFilePath))
+        {
+            _overlay?.ShowToast("Open a video file first to trim", "✂", isError: true);
+            return;
+        }
+
+        if (_trimmerWindow == null)
+        {
+            _trimmerWindow = new Views.TrimmerWindow(_player, _trimmerService, _currentFilePath)
+            {
+                Owner = this
+            };
+            _trimmerWindow.ClipExported += path =>
+            {
+                _overlay?.ShowToast($"Clip saved: {Path.GetFileName(path)}", "✂");
+            };
+        }
+
+        if (_trimmerWindow.IsVisible)
+        {
+            _trimmerWindow.Hide();
+        }
+        else
+        {
+            _trimmerWindow.Show();
+            _trimmerWindow.Activate();
+            _overlay?.ShowToast("Trimmer", "✂");
+        }
+    }
+
+    public void OpenDownloader()
+    {
+        if (_downloaderWindow == null)
+        {
+            _downloaderWindow = new Views.DownloaderWindow(_downloaderService)
+            {
+                Owner = this
+            };
+            _downloaderWindow.MediaDownloaded += path =>
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    LoadMediaFile(path);
+                    _overlay?.ShowToast($"Playing: {Path.GetFileName(path)}", "▶");
+                });
+            };
+        }
+
+        if (_downloaderWindow.IsVisible)
+        {
+            _downloaderWindow.Hide();
+        }
+        else
+        {
+            _downloaderWindow.Show();
+            _downloaderWindow.Activate();
+            _overlay?.ShowToast("Downloader", "📥");
         }
     }
 
@@ -503,6 +615,25 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Direct trimmer In/Out hotkey shortcuts when Trimmer window is active or visible
+        if (_trimmerWindow != null && _trimmerWindow.IsVisible && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            if (key == Key.I)
+            {
+                _trimmerWindow.SetInPoint(_player?.Position ?? TimeSpan.Zero);
+                _overlay?.ShowToast("In-Point Set", "✂");
+                e.Handled = true;
+                return;
+            }
+            if (key == Key.O)
+            {
+                _trimmerWindow.SetOutPoint(_player?.Position ?? TimeSpan.Zero);
+                _overlay?.ShowToast("Out-Point Set", "✂");
+                e.Handled = true;
+                return;
+            }
+        }
+
         var modifiers = new List<string>();
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) modifiers.Add("Ctrl");
         if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift) modifiers.Add("Shift");
@@ -616,6 +747,10 @@ public partial class MainWindow : Window
             case NJPlayer.Core.Hotkeys.CommandId.ToggleSubtitles:
                 _player?.Command("cycle", "sub-visibility");
                 _overlay?.ShowToast("Toggle Subtitles", "💬");
+                break;
+
+            case NJPlayer.Core.Hotkeys.CommandId.SubtitleDownload:
+                OpenSubtitlePicker();
                 break;
 
             case NJPlayer.Core.Hotkeys.CommandId.CycleAudioTrack:
@@ -736,6 +871,15 @@ public partial class MainWindow : Window
 
         _audioPanel?.ForceClose();
         _audioPanel = null;
+
+        _subtitlePicker?.ForceClose();
+        _subtitlePicker = null;
+
+        _trimmerWindow?.ForceClose();
+        _trimmerWindow = null;
+
+        _downloaderWindow?.ForceClose();
+        _downloaderWindow = null;
 
         try
         {

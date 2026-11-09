@@ -31,7 +31,7 @@
     <Border x:Name="WindowOutline" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
         <Grid Background="{StaticResource BgBrush}">
             <!-- Native Win32 child window hosting mpv video surface -->
-            <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+            <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" />
 
             <!-- Empty State Placeholder (Visible when no video is playing) -->
             <Border x:Name="EmptyStateOverlay" Background="{StaticResource BgBrush}" Visibility="Visible">

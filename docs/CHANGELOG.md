@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Lossless Trimmer & Online Downloader (`NJPlayer.Features` & `NJPlayer.App`)**:
+  - `MediaTrimmerService`: Lossless stream-copy trimming (`-c copy -avoid_negative_ts make_zero`) executed via external `ffmpeg.exe` with `ProcessStartInfo.ArgumentList` and async progress parsing.
+  - Optional frame-accurate re-encode mode (`libx264` + `aac`) when cuts between keyframes are required.
+  - Hotkeys <kbd>I</kbd> and <kbd>O</kbd> to set In and Out points at current playback position with live preview seek.
+  - Clear user messaging on keyframe snapping vs re-encoding.
+  - `MediaDownloaderService`: Online video/audio downloader wrapping external `yt-dlp.exe` with format presets (Best Available, 1080p, 720p, MP3 Audio, Best Audio), download speed/ETA regex parsing, and non-blocking cancellation.
+  - Prominent terms of service & responsibility notice for downloaded media.
+  - Auto-play: Automatically loads and starts playback of downloaded videos when finished.
+  - `TrimmerWindow` & `DownloaderWindow`: Floating dark modals matching `DESIGN.md` on `surface-raised` (`#1A212A`) with progress bars and top-bar buttons (`✂` and `📥`).
+  - Automated unit tests (`tests/NJPlayer.Tests/TrimmerAndDownloaderTests.cs`) covering validation, duration calculations, and process binary resolution (71 total tests passed).
+- **Subtitle Suite, Ge'ez/Amharic Rendering & Keyless Downloader (`NJPlayer.Features` & `NJPlayer.App`)**:
+  - `SubtitleService`: Automated detection of sidecar subtitle files (`.srt`, `.ass`, `.ssa`, `.vtt`, `.sub`), text encoding detection (UTF-8, UTF-16 LE/BE, UTF-32, Windows-1252), and track switching.
+  - Ge'ez and Amharic script rendering: configured fallback font stack (`Nyala, Ebrima, Segoe UI`) ensuring complete Ethiopic Unicode (U+1200 - U+137F) coverage without missing glyphs or layout corruption.
+  - Subtitle delay (<kbd>Z</kbd>/<kbd>X</kbd>) and font size customization (24px to 72px) applied live to mpv.
+  - `SubtitleHashCalculator`: 64-bit OpenSubtitles chunk hash calculation computed asynchronously off the UI thread via `Task.Run` with cancellation.
+  - `ISubtitleProvider` & `PodnapisiSubtitleProvider`: Free keyless online subtitle provider handling query searches, zip decompression, timeouts, and network errors gracefully.
+  - `SubtitlePickerWindow`: Dark dialog on `surface-raised` (`#1A212A`) with track picker, local file browsing, font/delay controls, and online search results with one-click download.
+  - UI & Airspace glitch fixes: native Win32 `ReleaseCapture()` + `WM_NCLBUTTONDOWN` caption dragging, `WM_WINDOWPOSCHANGED` hook for zero-lag overlay tracking, and hiding `PlayerHost` on empty state to prevent airspace punching.
+  - Automated unit tests (`tests/NJPlayer.Tests/SubtitleTests.cs`) covering hash calculation, sidecar matching, Ge'ez UTF-8 detection, and provider error resilience (64 total tests passed).
 - **Audio Suite & 10-Band Graphic Equalizer (`NJPlayer.Features` & `NJPlayer.App`)**:
   - `IAudioSuite` & `AudioSuiteService`: Modular audio processing engine built behind a lazy-loaded interface in `NJPlayer.Features`.
   - 10-band graphic equalizer with standard ISO center frequencies (31 Hz, 62 Hz, 125 Hz, 250 Hz, 500 Hz, 1 kHz, 2 kHz, 4 kHz, 8 kHz, 16 kHz) and -12 dB to +12 dB range using FFmpeg peaking biquad filters (`equalizer=f=...:width_type=o:w=1:g=...`).

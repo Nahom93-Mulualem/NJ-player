@@ -1,0 +1,171 @@
+<Window x:Class="NJPlayer.App.Views.SubtitlePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Subtitles - NJ Player"
+        Height="540" Width="620"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False">
+
+    <Border Background="{StaticResource SurfaceRaisedBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusLg}"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="32" ShadowDepth="12" Opacity="0.45" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="50" />
+            </Grid.RowDefinitions>
+
+            <!-- Title Bar -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12,12,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0,8,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="💬 Subtitle Suite" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="(Ge'ez &amp; Amharic Enabled)" FontSize="11" Foreground="{StaticResource AccentBrush}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click">
+                        <TextBlock Text="✕" FontSize="11" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Content Area (Tabs / Sections) -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="20,16">
+
+                    <!-- Section 1: Track Selection & Local File Loading -->
+                    <TextBlock Text="TRACK &amp; LOCAL FILES" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Active Subtitle Track" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource TextBrush}" />
+                                <ComboBox x:Name="TrackCombo" Margin="0,6,12,0" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" SelectionChanged="TrackCombo_SelectionChanged" />
+                            </StackPanel>
+
+                            <Button Grid.Column="1" Content="📁 Load File..." Style="{StaticResource IconButton}" Width="110" Height="32" VerticalAlignment="Bottom" Foreground="{StaticResource AccentBrush}" Click="BrowseSubtitle_Click" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Section 2: Subtitle Appearance & Timing -->
+                    <TextBlock Text="APPEARANCE &amp; SYNC" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Delay adjustment -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,14,10">
+                                <Grid>
+                                    <TextBlock Text="Subtitle Delay (Z / X)" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock x:Name="DelayText" Text="0 ms" FontSize="11" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <Slider x:Name="DelaySlider" Style="{StaticResource PlayerSliderStyle}" Minimum="-5000" Maximum="5000" Value="0" SmallChange="100" LargeChange="500" Margin="0,6,0,0" ValueChanged="DelaySlider_ValueChanged" />
+                            </StackPanel>
+
+                            <!-- Font size -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,10">
+                                <Grid>
+                                    <TextBlock Text="Font Size" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock x:Name="FontSizeText" Text="48 px" FontSize="11" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <Slider x:Name="FontSizeSlider" Style="{StaticResource PlayerSliderStyle}" Minimum="24" Maximum="72" Value="48" Margin="0,6,0,0" ValueChanged="FontSizeSlider_ValueChanged" />
+                            </StackPanel>
+
+                            <!-- Ge'ez / Amharic Font Rendering -->
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0">
+                                <TextBlock Text="Script &amp; Ethiopic / Ge'ez Font" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                                <ComboBox x:Name="FontCombo" Margin="0,4,0,0" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" SelectionChanged="FontCombo_SelectionChanged">
+                                    <ComboBoxItem Content="Nyala (Windows Ethiopic Master - Recommended)" Tag="Nyala, Ebrima, Segoe UI" IsSelected="True" />
+                                    <ComboBoxItem Content="Ebrima (Windows Pan-African / Ge'ez)" Tag="Ebrima, Nyala, Segoe UI" />
+                                    <ComboBoxItem Content="Abyssinica SIL (Calligraphic Ethiopic)" Tag="Abyssinica SIL, Nyala, Ebrima" />
+                                    <ComboBoxItem Content="Segoe UI (Standard Western)" Tag="Segoe UI Variable, Segoe UI, sans-serif" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Section 3: Online Subtitle Downloader -->
+                    <TextBlock Text="ONLINE SUBTITLE DOWNLOADER (PODNAPISI)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="140" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Search bar -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox x:Name="OnlineSearchBox" Height="30" Padding="8,4" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" VerticalContentAlignment="Center" KeyDown="OnlineSearchBox_KeyDown" />
+                                <Button Grid.Column="1" Content="Search" Style="{StaticResource PrimaryButton}" Height="30" Margin="8,0,0,0" Click="SearchOnline_Click" />
+                            </Grid>
+
+                            <!-- Status text -->
+                            <TextBlock Grid.Row="1" x:Name="SearchStatusText" Text="Click search to query free keyless subtitles." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,6,0,6" />
+
+                            <!-- Search Results List -->
+                            <ListBox Grid.Row="2" x:Name="OnlineResultsList" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" Foreground="{StaticResource TextBrush}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Height="32">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="45" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Lang badge -->
+                                            <Border Background="#1A00E5FF" CornerRadius="4" Padding="4,2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Language}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                                            </Border>
+
+                                            <!-- Release name -->
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" FontSize="11" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Margin="8,0" />
+
+                                            <!-- Download button -->
+                                            <Button Grid.Column="2" Content="⬇ Load" Style="{StaticResource TextGhostButton}" Tag="{Binding}" VerticalAlignment="Center" Margin="0,0,4,0" Click="DownloadSubtitle_Click" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer: Close -->
+            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="0,0,12,12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,0">
+                <Button Content="Done" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Width="80" Click="Close_Click" />
+            </Border>
+        </Grid>
+    </Border>
+</Window>
+

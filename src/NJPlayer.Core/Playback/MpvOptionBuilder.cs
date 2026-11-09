@@ -53,6 +53,19 @@ public sealed class MpvOptionBuilder
         return WithOption("wid", wid.ToInt64().ToString());
     }
 
+    public MpvOptionBuilder WithSubtitleDefaults(string font = "Nyala, Ebrima, Segoe UI", double fontSize = 48)
+    {
+        WithOption("sub-auto", "fuzzy");
+        WithOption("sub-codepage", "auto");
+        WithOption("sub-font", font);
+        WithOption("sub-font-size", fontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        WithOption("sub-border-size", "2.5");
+        WithOption("sub-border-color", "#000000");
+        WithOption("sub-shadow-offset", "1.5");
+        WithOption("sub-shadow-color", "#000000");
+        return this;
+    }
+
     public IReadOnlyDictionary<string, string> Build()
     {
         return new Dictionary<string, string>(_options, StringComparer.OrdinalIgnoreCase);

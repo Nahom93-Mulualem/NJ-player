@@ -17,8 +17,7 @@ out/
 *.DotSettings.user
 
 # Native binaries in libs/ (never commit binaries to git)
-libs/*.dll
-libs/*.exe
+libs/*
 !libs/README.txt
 
 # OS generated files

@@ -151,6 +151,67 @@ public sealed class MpvPlayer : IDisposable
         _context!.SetPropertyString(name, value);
     }
 
+    public void SetPropertyDouble(string name, double value)
+    {
+        EnsureInitialized();
+        _context!.SetPropertyDouble(name, value);
+    }
+
+    public void SetPropertyFlag(string name, bool value)
+    {
+        EnsureInitialized();
+        _context!.SetPropertyFlag(name, value);
+    }
+
+    public string? GetPropertyString(string name)
+    {
+        EnsureInitialized();
+        return _context!.GetPropertyString(name);
+    }
+
+    public double? GetPropertyDouble(string name)
+    {
+        EnsureInitialized();
+        return _context!.GetPropertyDouble(name);
+    }
+
+    public bool? GetPropertyFlag(string name)
+    {
+        EnsureInitialized();
+        return _context!.GetPropertyFlag(name);
+    }
+
+    public void AddSubtitle(string filePath, bool select = true)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return;
+        Command("sub-add", filePath, select ? "select" : "auto");
+    }
+
+    public void SetSubtitleDelay(double delaySeconds)
+    {
+        SetPropertyDouble("sub-delay", delaySeconds);
+    }
+
+    public void SetSubtitleFontSize(double size)
+    {
+        SetPropertyDouble("sub-font-size", size);
+    }
+
+    public void SetSubtitlePosition(double position)
+    {
+        SetPropertyDouble("sub-pos", position);
+    }
+
+    public void ToggleSubtitles()
+    {
+        Command("cycle", "sub-visibility");
+    }
+
+    public void CycleSubtitles()
+    {
+        Command("cycle", "sub");
+    }
+
     public void Command(params string[] args)
     {
         EnsureInitialized();

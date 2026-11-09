@@ -260,15 +260,26 @@ public partial class ControlsOverlayWindow : Window
 
     // --- Window Caption Handlers ---
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+
+    private const int WM_NCLBUTTONDOWN = 0xA1;
+    private const int HTCAPTION = 0x2;
+
     private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2)
         {
             _mainWindow.ToggleMaximize();
         }
-        else
+        else if (e.LeftButton == MouseButtonState.Pressed)
         {
-            _mainWindow.DragMove();
+            ReleaseCapture();
+            var helper = new System.Windows.Interop.WindowInteropHelper(_mainWindow);
+            SendMessage(helper.Handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
         }
     }
 
@@ -287,6 +298,12 @@ public partial class ControlsOverlayWindow : Window
         ShowControls();
     }
 
+    private void SubtitleButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenSubtitlePicker();
+        ShowControls();
+    }
+
     private void PlaylistButton_Click(object sender, RoutedEventArgs e)
     {
         TogglePlaylist();
@@ -295,6 +312,18 @@ public partial class ControlsOverlayWindow : Window
     public void ShowToast(string message, string icon = "⚡", bool isError = false)
     {
         Toast.ShowToast(message, icon, isError);
+    }
+
+    private void TrimmerButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenTrimmer();
+        ShowControls();
+    }
+
+    private void DownloaderButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenDownloader();
+        ShowControls();
     }
 
     private void EqualizerButton_Click(object sender, RoutedEventArgs e)
