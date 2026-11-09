@@ -28,3 +28,4 @@ Installers:
     InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000 # Replace with actual SHA256 on release
 ManifestType: installer
 ManifestVersion: 1.6.0
+

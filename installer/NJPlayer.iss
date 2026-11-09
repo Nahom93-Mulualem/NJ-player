@@ -74,3 +74,4 @@ Root: HKCU; Subkey: "Software\Classes\.ogg\OpenWithProgids"; ValueType: none; Va
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+

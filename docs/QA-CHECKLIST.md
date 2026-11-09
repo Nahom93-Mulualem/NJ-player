@@ -76,3 +76,4 @@ This document defines the comprehensive manual test protocol for quality assuran
 - [ ] **Online Radio (`📻`)**: Ethiopia (ET) pinned at index 0 in country filter; live ICY stream titles; real-time audio visualizer spectrum (`showcqt`) and oscilloscope (`showwaves`).
 - [ ] **Hotkeys Settings (`⌨`)**: Rebindable key shortcuts saved to `hotkeys.json` with duplicate conflict detection.
 - [ ] **Application Settings (`⚙`)**: Remember window position; resume playback position toggle; portable storage indicator; clear cache.
+

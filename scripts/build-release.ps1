@@ -87,3 +87,4 @@ $hashes | Out-File -FilePath $ChecksumsFile -Encoding utf8
 
 Write-Host "`nRelease build completed successfully!" -ForegroundColor Green
 Write-Host "Output Directory: $ArtifactsDir" -ForegroundColor Cyan
+

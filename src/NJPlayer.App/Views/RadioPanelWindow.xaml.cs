@@ -262,3 +262,4 @@ public partial class RadioPanelWindow : Window
         VisualizerModeChanged?.Invoke(mode);
     }
 }
+

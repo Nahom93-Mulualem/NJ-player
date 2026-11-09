@@ -20,3 +20,4 @@ public sealed class RadioCountry
     [JsonIgnore]
     public string DisplayName => !string.IsNullOrWhiteSpace(IsoCode) ? $"{Name} ({IsoCode.ToUpperInvariant()}) - {StationCount}" : Name;
 }
+

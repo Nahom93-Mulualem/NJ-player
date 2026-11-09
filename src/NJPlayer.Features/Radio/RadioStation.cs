@@ -56,3 +56,4 @@ public sealed class RadioStation
     [JsonIgnore]
     public string DisplayCountry => !string.IsNullOrWhiteSpace(CountryCode) ? $"[{CountryCode.ToUpperInvariant()}] {Country}" : Country;
 }
+
