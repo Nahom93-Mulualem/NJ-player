@@ -25,7 +25,9 @@
   <!-- Post-build step: Copy external native binaries (libmpv-2.dll, ffmpeg.exe, ffprobe.exe, yt-dlp.exe) next to the exe -->
   <Target Name="CopyExternalLibs" AfterTargets="Build">
     <ItemGroup>
-      <ExternalLibs Include="$(MSBuildThisFileDirectory)..\..\libs\*.dll;$(MSBuildThisFileDirectory)..\..\libs\*.exe" />
+      <ItemGroup>
+  <ExternalLibs Include="$(MSBuildThisFileDirectory)..\..\libs\mpv\*.dll;$(MSBuildThisFileDirectory)..\..\libs\*.dll;$(MSBuildThisFileDirectory)..\..\libs\*.exe" />
+</ItemGroup>
     </ItemGroup>
     <Copy SourceFiles="@(ExternalLibs)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" Condition="'@(ExternalLibs)' != ''" />
   </Target>
