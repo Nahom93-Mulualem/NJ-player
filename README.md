@@ -1,45 +1,44 @@
-# NJ Player Starter Kit
+# NJ Player
 
-A Windows media player (C# WPF + libmpv) inspired by PotPlayer: frameless dark UI, instant seeking, granular hotkeys.
+A Windows-only media player built with C#, WPF, and libmpv.
 
-## What is in this kit
-| File | Purpose |
-|---|---|
-| `AGENTS.md` | Standing instructions the coding agent reads automatically |
-| `DESIGN.md` | Look, feel, motion and hotkey spec for the player UI |
-| `PROMPTS.md` | Copy-paste prompts, in build order (Prompt 0 to 12) |
-| `.agents/rules/*.md` | Topic rules (architecture, C#/WPF, performance) |
-| `.agents/workflows/*.md` | Slash-command workflows: /new-feature, /review, /release |
-| `.antigravityignore` | Keeps binaries and build output out of the agent's context |
+> **Status:** In development. Features and compatibility are not yet fully verified.
 
-## How to use it with Google Antigravity
-1. Create a folder `NJPlayer`, copy everything from this kit into it, and open that folder as your workspace.
-2. Antigravity reads `AGENTS.md` and `.agents/rules/` automatically. (Folder names and features change between versions. If rules are not picked up, check the current Antigravity docs, and note that older versions used `.agent/` instead of `.agents/`.)
-3. Use **Planning mode** for every prompt in `PROMPTS.md`. Read the plan before approving.
-4. Send **one prompt at a time**. Run the app, test, commit to Git, then send the next prompt.
-5. If the agent drifts, say: "Re-read AGENTS.md and DESIGN.md, then fix only what I asked."
+NJ Player aims to provide fast playback and seeking, hardware decoding, a frameless dark interface, and customizable hotkeys.
 
-## What to install (Windows 10/11, x64)
-**Required**
-1. **Git** (git-scm.com), then run `git config --global user.name` and `user.email`.
-2. **.NET SDK**, current LTS (dotnet.microsoft.com). Check with `dotnet --version`.
-3. **Visual Studio Community** with the ".NET desktop development" workload (best for the WPF designer and debugger), or VS Code with the C# Dev Kit. Visual Studio is easier for WPF.
-4. **Google Antigravity** (antigravity.google) and sign in.
-5. **libmpv** (`libmpv-2.dll`, x64): download a "libmpv / mpv-dev" Windows build from the mpv-player/mpv Windows builds list (for example the shinchiro or zhongfly builds). **Check whether the build is GPL or LGPL** before choosing your license.
-6. **FFmpeg** (`ffmpeg.exe`, `ffprobe.exe`), from the FFmpeg download page's Windows builds. Again check GPL vs LGPL.
-7. **yt-dlp** (`yt-dlp.exe`) from the yt-dlp GitHub releases.
+## Features
 
-Put the three binaries in `libs/` (not committed to Git).
+**Implemented**
+- Add features here only after they work and have been tested.
 
-**For release time**
-8. **Inno Setup** (jrsoftware.org) for the installer.
-9. **GitHub account** and optionally GitHub CLI (`gh`).
-10. A code-signing option (SignPath for open source, or Azure Trusted Signing). Optional at first.
+**Planned**
+- Frameless dark interface with electric-cyan accents
+- Customizable hotkeys
+- Video playback through libmpv
+- Optional tools for trimming, downloads, and thumbnails
 
-**Useful extras**: Windows Terminal, DiffMerge or VS built-in diff, a few test videos (H.264, HEVC 10-bit, HDR, MKV with several tracks, a broken file), and test audio files.
+## Requirements
 
-## Before you publish
-- Decide the license (GPL if you bundle GPL libmpv/FFmpeg, MIT only if all bundled parts allow it).
-- Check the name "NJ Player" is free on GitHub and trademark searches.
-- Verify the subtitle source is still alive and allowed for this use.
-- Keep the downloader optional and make the user responsible for what they download.
+- Windows 10 or 11, x64
+- .NET SDK: [specify the supported version]
+- `libmpv-2.dll` and any required FFmpeg or yt-dlp executables
+
+Third-party binaries are not included in this repository. Check their licenses and distribution terms before bundling or redistributing them.
+
+## Build and run
+
+Add the exact commands once the solution builds reliably:
+
+```powershell
+dotnet build
+```
+
+## Project docs
+
+- [Design](DESIGN.md)
+- [Development instructions](AGENTS.md)
+- [Changelog](docs/CHANGELOG.md)
+
+## License
+
+License: **not yet decided**. Check the project and dependency licenses before choosing one.
