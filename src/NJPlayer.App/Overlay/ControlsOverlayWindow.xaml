@@ -14,7 +14,8 @@
         ShowActivated="False"
         Focusable="False"
         MouseMove="Window_MouseMove"
-        MouseLeave="Window_MouseLeave">
+        MouseLeave="Window_MouseLeave"
+        KeyDown="Window_KeyDown">
 
     <Grid x:Name="RootGrid" Background="Transparent" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
         <!-- TOP BAR (36px, surface at 85% opacity, window buttons) -->

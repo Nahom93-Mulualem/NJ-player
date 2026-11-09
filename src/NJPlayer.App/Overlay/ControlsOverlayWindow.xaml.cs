@@ -62,6 +62,24 @@ public partial class ControlsOverlayWindow : Window
         _player.EndFile += Player_EndFile;
     }
 
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     public void SyncWithMainWindow()
     {
         if (_mainWindow.WindowState == WindowState.Minimized)
@@ -71,10 +89,37 @@ public partial class ControlsOverlayWindow : Window
         }
 
         Visibility = Visibility.Visible;
-        Left = _mainWindow.Left;
-        Top = _mainWindow.Top;
-        Width = Math.Max(100, _mainWindow.ActualWidth);
-        Height = Math.Max(100, _mainWindow.ActualHeight);
+
+        var helper = new System.Windows.Interop.WindowInteropHelper(_mainWindow);
+        var overlayHelper = new System.Windows.Interop.WindowInteropHelper(this);
+
+        if (helper.Handle != IntPtr.Zero && GetWindowRect(helper.Handle, out RECT rect))
+        {
+            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(_mainWindow);
+            var dipLeft = rect.Left / dpi.DpiScaleX;
+            var dipTop = rect.Top / dpi.DpiScaleY;
+            var dipWidth = Math.Max(100.0, (rect.Right - rect.Left) / dpi.DpiScaleX);
+            var dipHeight = Math.Max(100.0, (rect.Bottom - rect.Top) / dpi.DpiScaleY);
+
+            if (overlayHelper.Handle != IntPtr.Zero)
+            {
+                SetWindowPos(overlayHelper.Handle, IntPtr.Zero,
+                    rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top,
+                    SWP_NOZORDER | SWP_NOACTIVATE);
+            }
+
+            Left = dipLeft;
+            Top = dipTop;
+            Width = dipWidth;
+            Height = dipHeight;
+        }
+        else
+        {
+            Left = _mainWindow.Left;
+            Top = _mainWindow.Top;
+            Width = Math.Max(100, _mainWindow.ActualWidth);
+            Height = Math.Max(100, _mainWindow.ActualHeight);
+        }
 
         MaxIcon.Text = _mainWindow.WindowState == WindowState.Maximized ? "❐" : "⬜";
 
@@ -316,17 +361,24 @@ public partial class ControlsOverlayWindow : Window
     private const int WM_NCLBUTTONDOWN = 0xA1;
     private const int HTCAPTION = 0x2;
 
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        _mainWindow.ForwardKeyDown(e);
+    }
+
     private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2)
         {
             _mainWindow.ToggleMaximize();
+            SyncWithMainWindow();
         }
         else if (e.LeftButton == MouseButtonState.Pressed)
         {
             ReleaseCapture();
             var helper = new System.Windows.Interop.WindowInteropHelper(_mainWindow);
             SendMessage(helper.Handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
+            SyncWithMainWindow();
         }
     }
 
@@ -415,6 +467,7 @@ public partial class ControlsOverlayWindow : Window
     private void MaxButton_Click(object sender, RoutedEventArgs e)
     {
         _mainWindow.ToggleMaximize();
+        SyncWithMainWindow();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

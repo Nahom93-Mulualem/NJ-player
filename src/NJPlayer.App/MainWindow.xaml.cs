@@ -179,15 +179,15 @@ public partial class MainWindow : Window
 
                 if (_isFullscreen)
                 {
-                    mmi.ptMaxPosition.X = rcMonitor.Left;
-                    mmi.ptMaxPosition.Y = rcMonitor.Top;
+                    mmi.ptMaxPosition.X = 0;
+                    mmi.ptMaxPosition.Y = 0;
                     mmi.ptMaxSize.X = rcMonitor.Width;
                     mmi.ptMaxSize.Y = rcMonitor.Height;
                 }
                 else
                 {
-                    mmi.ptMaxPosition.X = Math.Abs(rcWork.Left - rcMonitor.Left);
-                    mmi.ptMaxPosition.Y = Math.Abs(rcWork.Top - rcMonitor.Top);
+                    mmi.ptMaxPosition.X = rcWork.Left - rcMonitor.Left;
+                    mmi.ptMaxPosition.Y = rcWork.Top - rcMonitor.Top;
                     mmi.ptMaxSize.X = rcWork.Width;
                     mmi.ptMaxSize.Y = rcWork.Height;
                 }
@@ -744,11 +744,18 @@ public partial class MainWindow : Window
             WindowStyle = _savedStyle;
             ResizeMode = _savedResize;
 
-            Left = _savedLeft;
-            Top = _savedTop;
-            Width = _savedWidth;
-            Height = _savedHeight;
-            WindowState = _savedState;
+            if (_savedState == WindowState.Maximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+            else
+            {
+                Left = _savedLeft;
+                Top = _savedTop;
+                Width = _savedWidth;
+                Height = _savedHeight;
+                WindowState = WindowState.Normal;
+            }
 
             WindowOutline.BorderThickness = WindowState == WindowState.Maximized ? new Thickness(0) : new Thickness(1);
             _overlay?.ExitFullscreen();
@@ -775,6 +782,7 @@ public partial class MainWindow : Window
         }
 
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        _overlay?.SyncWithMainWindow();
     }
 
     private void Player_EndFile(object? sender, EndFileEventArgs e)
@@ -871,6 +879,11 @@ public partial class MainWindow : Window
         win.ShowDialog();
     }
 
+    public void ForwardKeyDown(KeyEventArgs e)
+    {
+        Window_KeyDown(this, e);
+    }
+
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
@@ -896,6 +909,14 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             }
+        }
+
+        // Escape exits fullscreen per Issue 3
+        if (key == Key.Escape && _isFullscreen)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+            return;
         }
 
         // Enter key toggles fullscreen per DESIGN.md and Issue 3
