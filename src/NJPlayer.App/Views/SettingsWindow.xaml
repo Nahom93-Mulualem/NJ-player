@@ -62,7 +62,7 @@
                                 <TextBlock Text="Hardware Acceleration (hwdec)" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
                                 <TextBlock Text="GPU decoding method passed to libmpv." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
                             </StackPanel>
-                            <ComboBox x:Name="HwdecCombo" HorizontalAlignment="Right" VerticalAlignment="Center" Width="140" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}">
+                            <ComboBox x:Name="HwdecCombo" HorizontalAlignment="Right" VerticalAlignment="Center" Width="190">
                                 <ComboBoxItem Content="auto-safe (Recommended)" IsSelected="True" Tag="auto-safe" />
                                 <ComboBoxItem Content="d3d11va (Direct3D 11)" Tag="d3d11va" />
                                 <ComboBoxItem Content="nvdec (NVIDIA)" Tag="nvdec" />
