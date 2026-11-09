@@ -30,6 +30,9 @@ public partial class MainWindow : Window
     private Views.SubtitlePickerWindow? _subtitlePicker;
     private Views.TrimmerWindow? _trimmerWindow;
     private Views.DownloaderWindow? _downloaderWindow;
+    private NJPlayer.Features.Radio.RadioBrowserService? _radioService;
+    private Views.RadioPanelWindow? _radioPanelWindow;
+    private string _currentVisualizerMode = "showcqt";
 
     private readonly Stopwatch? _benchStopwatch;
     private bool _benchMeasured = false;
@@ -210,6 +213,7 @@ public partial class MainWindow : Window
             _player.Error += Player_Error;
             _player.EndFile += Player_EndFile;
             _player.TimePositionChanged += Player_TimePositionChanged;
+            _player.MediaTitleChanged += Player_MediaTitleChanged;
             Trace.WriteLine($"[NJPlayer] mpv engine initialized with '{hwdec}' hardware decoding.");
         }
         catch (DllNotFoundException ex)
@@ -285,6 +289,7 @@ public partial class MainWindow : Window
 
         try
         {
+            ApplyVisualizerFilter("off");
             _player.Load(filePath, startPaused: false);
             ApplyAudioFilters();
         }
@@ -429,6 +434,106 @@ public partial class MainWindow : Window
             _downloaderWindow.Activate();
             _overlay?.ShowToast("Downloader", "📥");
         }
+    }
+
+    public void OpenRadioBrowser()
+    {
+        if (_radioService == null)
+        {
+            _radioService = new Features.Radio.RadioBrowserService(initialFavorites: _settingsManager.Settings.RadioFavorites);
+        }
+
+        if (_radioPanelWindow == null)
+        {
+            _radioPanelWindow = new Views.RadioPanelWindow(_radioService, _settingsManager.Settings)
+            {
+                Owner = this
+            };
+            _radioPanelWindow.StationSelected += (station, vizMode) =>
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    PlayRadioStation(station, vizMode);
+                });
+            };
+            _radioPanelWindow.VisualizerModeChanged += mode =>
+            {
+                _currentVisualizerMode = mode;
+                ApplyVisualizerFilter(mode);
+            };
+        }
+
+        if (_radioPanelWindow.IsVisible)
+        {
+            _radioPanelWindow.Hide();
+        }
+        else
+        {
+            _radioPanelWindow.Show();
+            _radioPanelWindow.Activate();
+            _overlay?.ShowToast("Online Radio", "📻");
+        }
+    }
+
+    public void PlayRadioStation(Features.Radio.RadioStation station, string vizMode)
+    {
+        if (!_isDllAvailable || _player == null)
+        {
+            MessageBox.Show(
+                "Cannot open stream: 'libmpv-2.dll' was not found.\n\nPlease place 64-bit libmpv-2.dll into the 'libs' folder or next to NJPlayer.App.exe.",
+                "libmpv Required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(station.StreamUrl)) return;
+
+        _currentFilePath = station.StreamUrl;
+        _currentVisualizerMode = vizMode;
+
+        PlayerHost.Visibility = Visibility.Visible;
+        EmptyStateOverlay.Visibility = Visibility.Collapsed;
+        _overlay?.UpdateTitle($"📻 {station.Name}", station.StreamUrl);
+
+        try
+        {
+            // Apply visualizer filter first before stream decode
+            ApplyVisualizerFilter(vizMode);
+            _player.Load(station.StreamUrl, startPaused: false);
+            ApplyAudioFilters();
+            _overlay?.ShowToast($"Tuning into {station.Name}", "📻");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error playing radio station: {ex.Message}", "Radio Stream Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    public void ApplyVisualizerFilter(string mode)
+    {
+        if (_player == null || !_isDllAvailable) return;
+        var filter = Features.Radio.RadioBrowserService.BuildVisualizerFilter(mode);
+        try
+        {
+            _player.SetPropertyString("lavfi-complex", filter);
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Visualizer filter apply error: {ex.Message}");
+        }
+    }
+
+    private void Player_MediaTitleChanged(object? sender, string mediaTitle)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(mediaTitle))
+            {
+                _overlay?.UpdateTitle($"📻 {mediaTitle}", _currentFilePath ?? string.Empty);
+                _overlay?.ShowToast(mediaTitle, "🎵");
+            }
+        });
     }
 
     public void HandleCommandLineArgs(string[] args)

@@ -326,6 +326,12 @@ public partial class ControlsOverlayWindow : Window
         ShowControls();
     }
 
+    private void OnlineRadioButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenRadioBrowser();
+        ShowControls();
+    }
+
     private void EqualizerButton_Click(object sender, RoutedEventArgs e)
     {
         _mainWindow.ToggleEqualizer();

@@ -18,6 +18,14 @@ public sealed class MpvOptionBuilder
         WithIdle(true);
         WithTerminal(false);
         WithHardwareDecoding("auto-safe");
+        WithNetworkDefaults();
+    }
+
+    public MpvOptionBuilder WithNetworkDefaults()
+    {
+        WithOption("network-timeout", "15");
+        WithOption("stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5");
+        return this;
     }
 
     public MpvOptionBuilder WithOption(string name, string value)

@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Online Radio Browser & Real-Time Audio Visualizer (`NJPlayer.Features` & `NJPlayer.App`)**:
+  - `RadioBrowserService`: Community-driven radio directory client using `radio-browser.info` with dynamic DNS round-robin server resolution (`all.api.radio-browser.info`) and multi-mirror fallback (`de1`, `nl1`, `at1`).
+  - Country filtering with **Ethiopia (ET)** pinned at index 0, followed by "All Countries" and global station queries.
+  - Local JSON caching in `%APPDATA%\NJPlayer\radio_cache.json` providing resilient offline browsing and instant station search.
+  - Real-time audio visualizers via mpv `lavfi-complex` filter generation:
+    - `showcqt`: Constant-Q Transform frequency spectrum analyzer (1280x720, 30 fps).
+    - `showwaves`: Live oscilloscope audio waveform with electric cyan accent token (`0x00E5FF`).
+    - `off`: Bit-exact zero overhead mode for normal video or lightweight playback.
+  - Stream resiliency & ICY metadata:
+    - Added automated stream reconnects (`stream-lavf-o=reconnect=1,reconnect_streamed=1,reconnect_delay_max=5`) and 15-second network timeout.
+    - Implemented mpv `media-title` property observation raising real-time events for live ICY/Shoutcast/Icecast track and station updates with on-screen notification toasts.
+  - `RadioPanelWindow`: Modeless floating panel matching `DESIGN.md` Section 6 on `surface-raised` (`#1A212A`) with search box, country filter, favorites star toggle, bitrate badges, and play triggers.
+  - Top-bar caption button `📻` in `ControlsOverlayWindow` for instant access.
+  - Automated unit tests (`tests/NJPlayer.Tests/RadioTests.cs`) covering visualizer filter graphs, Ethiopia pinning, favorites persistence, and model formatting (78 total tests passed).
 - **Lossless Trimmer & Online Downloader (`NJPlayer.Features` & `NJPlayer.App`)**:
   - `MediaTrimmerService`: Lossless stream-copy trimming (`-c copy -avoid_negative_ts make_zero`) executed via external `ffmpeg.exe` with `ProcessStartInfo.ArgumentList` and async progress parsing.
   - Optional frame-accurate re-encode mode (`libx264` + `aac`) when cuts between keyframes are required.

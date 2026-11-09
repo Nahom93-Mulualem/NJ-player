@@ -1,0 +1,187 @@
+<Window x:Class="NJPlayer.App.Views.RadioPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Online Radio - NJ Player"
+        Height="580" Width="600"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False">
+
+    <Border Background="{StaticResource SurfaceRaisedBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusLg}"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="32" ShadowDepth="12" Opacity="0.45" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Title Bar -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12,12,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0,8,0">
+                    <TextBlock Text="📻 Online Radio &amp; Visualizer" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click">
+                        <TextBlock Text="✕" FontSize="11" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Search, Filter & Controls Toolbar -->
+            <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Search, Country, Favorites Filter -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Search Box -->
+                        <TextBox x:Name="SearchBox" Grid.Column="0" Height="30" Padding="8,4" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" VerticalContentAlignment="Center" Margin="0,0,8,0" KeyDown="SearchBox_KeyDown" ToolTip="Search station name or genre" />
+
+                        <!-- Country ComboBox (Ethiopia ET pinned first) -->
+                        <ComboBox x:Name="CountryComboBox" Grid.Column="1" Height="30" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" VerticalContentAlignment="Center" Margin="0,0,8,0" SelectionChanged="CountryComboBox_SelectionChanged" />
+
+                        <!-- Favorites Filter Button -->
+                        <Button x:Name="FavoritesFilterBtn" Grid.Column="2" Width="32" Height="30" Style="{StaticResource CaptionButtonStyle}" ToolTip="Show Favorites Only" Click="FavoritesFilterBtn_Click" Margin="0,0,8,0">
+                            <TextBlock x:Name="FavoritesFilterIcon" Text="★" FontSize="14" Foreground="{StaticResource TextMutedBrush}" />
+                        </Button>
+
+                        <!-- Search / Refresh Button -->
+                        <Button x:Name="SearchButton" Grid.Column="3" Height="30" Padding="10,0" Style="{StaticResource SecondaryButtonStyle}" Click="SearchButton_Click">
+                            <TextBlock Text="🔍 Search" FontSize="12" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Row 1: Visualizer Selector -->
+                    <Grid Grid.Row="1" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="AUDIO VISUALIZER:" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <RadioButton x:Name="VizCqtRadio" Content="Spectrum (showcqt)" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" IsChecked="True" Checked="VisualizerMode_Checked" />
+                            <RadioButton x:Name="VizWavesRadio" Content="Oscilloscope (showwaves)" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" Checked="VisualizerMode_Checked" />
+                            <RadioButton x:Name="VizOffRadio" Content="Off" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Checked="VisualizerMode_Checked" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Station List & Loading State -->
+            <Grid Grid.Row="2">
+                <ListBox x:Name="StationListBox"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         MouseDoubleClick="StationListBox_MouseDoubleClick">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" Padding="12,8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#1A00E5FF" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#2A00E5FF" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="36" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Play Button -->
+                                <Button Grid.Column="0" Width="26" Height="26" Style="{StaticResource IconButton}" Click="PlayStation_Click" ToolTip="Play Station" Tag="{Binding}">
+                                    <TextBlock Text="▶" FontSize="11" Foreground="{StaticResource AccentBrush}" />
+                                </Button>
+
+                                <!-- Station Name & Details -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,8,0">
+                                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                        <TextBlock Text="{Binding DisplayCountry}" FontSize="11" Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0" />
+                                        <TextBlock Text="{Binding Tags}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Bitrate Badge -->
+                                <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="6,2" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding BitrateDisplay}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+
+                                <!-- Favorite Star Toggle -->
+                                <Button Grid.Column="3" Width="28" Height="28" Style="{StaticResource IconButton}" Click="FavoriteToggle_Click" ToolTip="Toggle Favorite" Tag="{Binding}">
+                                    <TextBlock Text="★" FontSize="14">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                        <Setter Property="Foreground" Value="#FFD700" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Loading / Empty Overlay -->
+                <TextBlock x:Name="StatusMessageText" Text="Loading stations..." FontSize="13" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
+            </Grid>
+
+            <!-- Bottom Status Footer -->
+            <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}" CornerRadius="0,0,12,12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,8">
+                <Grid>
+                    <TextBlock x:Name="StationCountText" Text="0 stations" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="Community-driven via radio-browser.info" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

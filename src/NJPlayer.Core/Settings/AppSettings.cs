@@ -29,4 +29,8 @@ public sealed class AppSettings
 
     // Audio & Equalizer configuration
     public AudioConfig Audio { get; set; } = new();
+
+    // Radio & Visualizer configuration
+    public List<string> RadioFavorites { get; set; } = new();
+    public string VisualizerMode { get; set; } = "showcqt";
 }

@@ -55,6 +55,9 @@
                     <Button x:Name="DownloaderButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Online Downloader" Click="DownloaderButton_Click">
                         <TextBlock Text="📥" FontSize="11" />
                     </Button>
+                    <Button x:Name="OnlineRadioButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Online Radio &amp; Visualizer" Click="OnlineRadioButton_Click">
+                        <TextBlock Text="📻" FontSize="11" />
+                    </Button>
                     <Button x:Name="EqualizerButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Equalizer (E)" Click="EqualizerButton_Click">
                         <TextBlock Text="🎚" FontSize="11" />
                     </Button>

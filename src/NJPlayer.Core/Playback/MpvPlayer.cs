@@ -17,6 +17,7 @@ public sealed class MpvPlayer : IDisposable
     private const ulong PropReplyVolume = 4;
     private const ulong PropReplySpeed = 5;
     private const ulong PropReplyTrackList = 6;
+    private const ulong PropReplyMediaTitle = 7;
 
     private readonly object _stateLock = new();
     private readonly AutoResetEvent _wakeEvent = new(false);
@@ -39,6 +40,7 @@ public sealed class MpvPlayer : IDisposable
     public event EventHandler<double>? VolumeChanged;
     public event EventHandler<double>? SpeedChanged;
     public event EventHandler? TrackListChanged;
+    public event EventHandler<string>? MediaTitleChanged;
     public event EventHandler<EndFileEventArgs>? EndFile;
     public event EventHandler<MpvErrorEventArgs>? Error;
 
@@ -74,6 +76,7 @@ public sealed class MpvPlayer : IDisposable
         _context.ObserveProperty(PropReplyVolume, "volume", MpvFormat.Double);
         _context.ObserveProperty(PropReplySpeed, "speed", MpvFormat.Double);
         _context.ObserveProperty(PropReplyTrackList, "track-list", MpvFormat.None);
+        _context.ObserveProperty(PropReplyMediaTitle, "media-title", MpvFormat.String);
 
         _isInitialized = true;
 
@@ -326,6 +329,15 @@ public sealed class MpvPlayer : IDisposable
 
             case PropReplyTrackList:
                 TrackListChanged?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case PropReplyMediaTitle when prop.Format == MpvFormat.String && prop.Data != IntPtr.Zero:
+                var titlePtr = Marshal.ReadIntPtr(prop.Data);
+                var title = titlePtr != IntPtr.Zero ? Marshal.PtrToStringUTF8(titlePtr) : string.Empty;
+                if (!string.IsNullOrWhiteSpace(title))
+                {
+                    MediaTitleChanged?.Invoke(this, title);
+                }
                 break;
 
             default:
