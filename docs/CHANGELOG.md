@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added / Fixed
+- **Overlay Window Synchronization, Responsive Reflow & Official Branding (Issue 3)**:
+  - Synchronized `ControlsOverlayWindow` dimensions with `MainWindow` using Win32 `GetWindowRect` and `SetWindowPos`, eliminating the floating 980px bar on maximize.
+  - Native work area maximize clamping and true fullscreen spanning the physical monitor with title bar/taskbar hidden.
+  - Responsive reflow collapsing tool buttons into `⋯` overflow menu when window width is `< 680px` and volume slider when `< 540px`.
+  - Added <kbd>Escape</kbd> shortcut to exit fullscreen.
+  - Forwarded keyboard events from `ControlsOverlayWindow` to `MainWindow` so hotkeys work when clicking overlay buttons.
+  - Updated player brand assets across all resolutions (`logo.png`, `app.ico`, `njplayer.ico`, `app_16x16.png`, `app_32x32.png`, `app_48x48.png`, `app_256x256.png`) with the official electric cyan "NJ" badge.
+
 ### Added
 - **Quality Review, Playback Benchmarking & QA Matrix (Prompt 14)**:
   - `docs/BENCHMARK.md`: Automated performance benchmark tracking cold start to 1st frame, seek latency, CPU %, and memory usage across 5 standardized profiles (H.264 1080p, HEVC 10-bit 4K, 4K HDR, MKV multi-track, and FLAC audio).
