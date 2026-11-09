@@ -41,12 +41,17 @@ public partial class MainWindow : Window
 
     private bool _isDllAvailable = true;
     private bool _isFullscreen = false;
+    private bool _isAlwaysOnTop = false;
     private double _lastNonMuteVolume = 100;
     private int _subDelayMs = 0;
 
     private WindowState _savedState = WindowState.Normal;
     private WindowStyle _savedStyle = WindowStyle.SingleBorderWindow;
     private ResizeMode _savedResize = ResizeMode.CanResize;
+    private double _savedLeft = 100;
+    private double _savedTop = 100;
+    private double _savedWidth = 980;
+    private double _savedHeight = 580;
 
     public bool IsFullscreen => _isFullscreen;
     public SettingsManager SettingsManager => _settingsManager;
@@ -100,6 +105,51 @@ public partial class MainWindow : Window
     }
 
     private const int WM_WINDOWPOSCHANGED = 0x0047;
+    private const int WM_GETMINMAXINFO = 0x0024;
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+        public int Width => Right - Left;
+        public int Height => Bottom - Top;
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
@@ -107,7 +157,51 @@ public partial class MainWindow : Window
         {
             _overlay?.SyncWithMainWindow();
         }
+        else if (msg == WM_GETMINMAXINFO)
+        {
+            WmGetMinMaxInfo(hwnd, lParam);
+            handled = true;
+        }
         return IntPtr.Zero;
+    }
+
+    private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+    {
+        var mmi = System.Runtime.InteropServices.Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var monitorInfo = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+            if (GetMonitorInfo(monitor, ref monitorInfo))
+            {
+                var rcWork = monitorInfo.rcWork;
+                var rcMonitor = monitorInfo.rcMonitor;
+
+                if (_isFullscreen)
+                {
+                    mmi.ptMaxPosition.X = rcMonitor.Left;
+                    mmi.ptMaxPosition.Y = rcMonitor.Top;
+                    mmi.ptMaxSize.X = rcMonitor.Width;
+                    mmi.ptMaxSize.Y = rcMonitor.Height;
+                }
+                else
+                {
+                    mmi.ptMaxPosition.X = Math.Abs(rcWork.Left - rcMonitor.Left);
+                    mmi.ptMaxPosition.Y = Math.Abs(rcWork.Top - rcMonitor.Top);
+                    mmi.ptMaxSize.X = rcWork.Width;
+                    mmi.ptMaxSize.Y = rcWork.Height;
+                }
+
+                // Minimum window size: 480x270 across high-DPI scaling per Issue 3
+                var source = PresentationSource.FromVisual(this);
+                var dpiX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                var dpiY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+                mmi.ptMinTrackSize.X = (int)(480 * dpiX);
+                mmi.ptMinTrackSize.Y = (int)(270 * dpiY);
+
+                System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
+            }
+        }
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -612,24 +706,64 @@ public partial class MainWindow : Window
             _savedState = WindowState;
             _savedStyle = WindowStyle;
             _savedResize = ResizeMode;
+            _savedLeft = Left;
+            _savedTop = Top;
+            _savedWidth = Width;
+            _savedHeight = Height;
+
+            var helper = new System.Windows.Interop.WindowInteropHelper(this);
+            var hMonitor = MonitorFromWindow(helper.Handle, MONITOR_DEFAULTTONEAREST);
+            var mi = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
+            GetMonitorInfo(hMonitor, ref mi);
+
+            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+            var fullLeft = mi.rcMonitor.Left / dpi.DpiScaleX;
+            var fullTop = mi.rcMonitor.Top / dpi.DpiScaleY;
+            var fullWidth = mi.rcMonitor.Width / dpi.DpiScaleX;
+            var fullHeight = mi.rcMonitor.Height / dpi.DpiScaleY;
+
+            _isFullscreen = true;
 
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
             WindowState = WindowState.Normal;
-            WindowState = WindowState.Maximized;
+            Topmost = true;
+
+            Left = fullLeft;
+            Top = fullTop;
+            Width = fullWidth;
+            Height = fullHeight;
+
             WindowOutline.BorderThickness = new Thickness(0);
-            _isFullscreen = true;
+            _overlay?.EnterFullscreen();
         }
         else
         {
+            _isFullscreen = false;
+            Topmost = _isAlwaysOnTop;
             WindowStyle = _savedStyle;
             ResizeMode = _savedResize;
+
+            Left = _savedLeft;
+            Top = _savedTop;
+            Width = _savedWidth;
+            Height = _savedHeight;
             WindowState = _savedState;
-            WindowOutline.BorderThickness = new Thickness(1);
-            _isFullscreen = false;
+
+            WindowOutline.BorderThickness = WindowState == WindowState.Maximized ? new Thickness(0) : new Thickness(1);
+            _overlay?.ExitFullscreen();
         }
 
         _overlay?.SyncWithMainWindow();
+    }
+
+    private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+        }
     }
 
     public void ToggleMaximize()
@@ -762,6 +896,14 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             }
+        }
+
+        // Enter key toggles fullscreen per DESIGN.md and Issue 3
+        if ((key == Key.Return || key == Key.Enter) && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+            return;
         }
 
         var modifiers = new List<string>();
@@ -919,9 +1061,10 @@ public partial class MainWindow : Window
                 break;
 
             case NJPlayer.Core.Hotkeys.CommandId.ToggleAlwaysOnTop:
-                Topmost = !Topmost;
-                if (_overlay != null) _overlay.Topmost = Topmost;
-                _overlay?.ShowToast(Topmost ? "Always on Top: ON" : "Always on Top: OFF", "📌");
+                _isAlwaysOnTop = !_isAlwaysOnTop;
+                Topmost = _isAlwaysOnTop;
+                if (_overlay != null) _overlay.Topmost = _isAlwaysOnTop;
+                _overlay?.ShowToast(_isAlwaysOnTop ? "Always on Top: ON" : "Always on Top: OFF", "📌");
                 break;
 
             case NJPlayer.Core.Hotkeys.CommandId.ToggleEqualizer:

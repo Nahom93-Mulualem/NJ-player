@@ -6,6 +6,7 @@
         xmlns:views="clr-namespace:NJPlayer.App.Views"
         mc:Ignorable="d"
         Title="Controls Overlay"
+        MinWidth="480" MinHeight="270"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -15,7 +16,7 @@
         MouseMove="Window_MouseMove"
         MouseLeave="Window_MouseLeave">
 
-    <Grid x:Name="RootGrid" Background="Transparent">
+    <Grid x:Name="RootGrid" Background="Transparent" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
         <!-- TOP BAR (36px, surface at 85% opacity, window buttons) -->
         <Border x:Name="TopBar"
                 Height="36"
@@ -66,6 +67,19 @@
                     </Button>
                     <Button x:Name="SettingsButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Hotkey Settings" Click="SettingsButton_Click">
                         <TextBlock Text="⌨" FontSize="12" />
+                    </Button>
+                    <Button x:Name="OverflowButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="More Features" Visibility="Collapsed" Click="OverflowButton_Click">
+                        <TextBlock Text="⋯" FontSize="16" FontWeight="Bold" Margin="0,-4,0,0" />
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="OverflowMenu">
+                                <MenuItem Header="✂ Lossless Trimmer" Click="TrimmerButton_Click" />
+                                <MenuItem Header="📥 Online Downloader" Click="DownloaderButton_Click" />
+                                <MenuItem Header="📻 Online Radio &amp; Visualizer" Click="OnlineRadioButton_Click" />
+                                <MenuItem Header="🎚 Equalizer (E)" Click="EqualizerButton_Click" />
+                                <MenuItem Header="⚙ General Settings" Click="GeneralSettingsButton_Click" />
+                                <MenuItem Header="⌨ Hotkey Settings" Click="SettingsButton_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
                     </Button>
                     <Button x:Name="PinButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Always on Top (T)" Click="PinButton_Click">
                         <TextBlock x:Name="PinIcon" Text="📌" FontSize="11" />

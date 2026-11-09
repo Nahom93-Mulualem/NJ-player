@@ -77,6 +77,53 @@ public partial class ControlsOverlayWindow : Window
         Height = Math.Max(100, _mainWindow.ActualHeight);
 
         MaxIcon.Text = _mainWindow.WindowState == WindowState.Maximized ? "❐" : "⬜";
+
+        // Responsive reflow down to 480x270 per Issue 3
+        var currentWidth = Width;
+        bool isCompact = currentWidth < 680;
+        TrimmerButton.Visibility = isCompact ? Visibility.Collapsed : Visibility.Visible;
+        DownloaderButton.Visibility = isCompact ? Visibility.Collapsed : Visibility.Visible;
+        OnlineRadioButton.Visibility = isCompact ? Visibility.Collapsed : Visibility.Visible;
+        EqualizerButton.Visibility = isCompact ? Visibility.Collapsed : Visibility.Visible;
+        GeneralSettingsButton.Visibility = isCompact ? Visibility.Collapsed : Visibility.Visible;
+        SettingsButton.Visibility = isCompact ? Visibility.Collapsed : Visibility.Visible;
+        OverflowButton.Visibility = isCompact ? Visibility.Visible : Visibility.Collapsed;
+
+        bool isNarrow = currentWidth < 540;
+        VolumeSlider.Visibility = isNarrow ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    public void EnterFullscreen()
+    {
+        TopBar.Visibility = Visibility.Collapsed;
+        FullscreenIcon.Text = "⤦";
+        FullscreenButton.ToolTip = "Exit Fullscreen (F, Enter, Esc)";
+    }
+
+    public void ExitFullscreen()
+    {
+        TopBar.Visibility = Visibility.Visible;
+        FullscreenIcon.Text = "⛶";
+        FullscreenButton.ToolTip = "Fullscreen (F, Enter)";
+    }
+
+    private void RootGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Double clicking empty surface area outside controls toggles fullscreen
+        if (e.ClickCount == 2 && !TopBar.IsMouseOver && !BottomBar.IsMouseOver && !Drawer.IsOpen)
+        {
+            _mainWindow.ToggleFullscreen();
+            e.Handled = true;
+        }
+    }
+
+    private void OverflowButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (OverflowButton.ContextMenu != null)
+        {
+            OverflowButton.ContextMenu.PlacementTarget = OverflowButton;
+            OverflowButton.ContextMenu.IsOpen = true;
+        }
     }
 
     public void UpdateTitle(string title, string? filePath = null)

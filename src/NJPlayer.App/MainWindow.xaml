@@ -6,6 +6,7 @@
         xmlns:views="clr-namespace:NJPlayer.App.Views"
         mc:Ignorable="d"
         Title="NJ Player" Height="580" Width="980"
+        MinWidth="480" MinHeight="270"
         Icon="Assets/app.ico"
         Background="{StaticResource BgBrush}"
         Foreground="{StaticResource TextBrush}"
@@ -15,6 +16,7 @@
         Drop="Window_Drop"
         KeyDown="Window_KeyDown"
         MouseMove="Window_MouseMove"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
 
