@@ -19,6 +19,8 @@ public partial class RadioPanelWindow : Window
     private readonly List<RadioStation> _allLoadedStations = new();
     private CancellationTokenSource? _searchCts;
     private bool _showFavoritesOnly;
+    private bool _isUpdatingUi = false;
+    private bool _isForceClosing = false;
 
     public event Action<RadioStation, string>? StationSelected;
     public event Action<string>? VisualizerModeChanged;
@@ -59,12 +61,20 @@ public partial class RadioPanelWindow : Window
 
     private async void RadioPanelWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        await LoadCountriesAsync();
-        await TriggerSearchAsync();
+        try
+        {
+            await LoadCountriesAsync();
+            await TriggerSearchAsync();
+        }
+        catch (Exception ex)
+        {
+            NJPlayer.Core.Diagnostics.LogService.LogError("RadioPanel.Loaded", ex);
+        }
     }
 
     private async Task LoadCountriesAsync()
     {
+        _isUpdatingUi = true;
         try
         {
             var countries = await _radioService.GetCountriesAsync().ConfigureAwait(true);
@@ -103,10 +113,14 @@ public partial class RadioPanelWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Trace.WriteLine($"[Radio] Country load error: {ex.Message}");
+            NJPlayer.Core.Diagnostics.LogService.LogError("RadioPanel.LoadCountries", ex);
             CountryComboBox.Items.Add(new ComboBoxItem { Content = "🇪🇹 Ethiopia (ET)", Tag = "ET" });
             CountryComboBox.Items.Add(new ComboBoxItem { Content = "🌐 All Countries", Tag = "ALL" });
             CountryComboBox.SelectedIndex = 0;
+        }
+        finally
+        {
+            _isUpdatingUi = false;
         }
     }
 
@@ -193,7 +207,7 @@ public partial class RadioPanelWindow : Window
 
     private async void CountryComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (IsLoaded)
+        if (!_isUpdatingUi && IsLoaded)
         {
             await TriggerSearchAsync();
         }
@@ -260,6 +274,24 @@ public partial class RadioPanelWindow : Window
         var mode = SelectedVisualizerMode;
         _settings.VisualizerMode = mode;
         VisualizerModeChanged?.Invoke(mode);
+    }
+
+    public void ForceClose()
+    {
+        _isForceClosing = true;
+        Close();
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (_isForceClosing)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        Hide();
     }
 }
 

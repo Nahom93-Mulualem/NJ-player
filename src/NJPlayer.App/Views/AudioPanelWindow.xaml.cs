@@ -18,8 +18,10 @@ public partial class AudioPanelWindow : Window
 
     public AudioPanelWindow(IAudioSuite audioSuite)
     {
-        InitializeComponent();
+        _isUpdatingUi = true;
         _audioSuite = audioSuite ?? throw new ArgumentNullException(nameof(audioSuite));
+
+        InitializeComponent();
 
         _bandSliders =
         [
@@ -34,6 +36,7 @@ public partial class AudioPanelWindow : Window
         ];
 
         PopulatePresets();
+        _isUpdatingUi = false;
         SyncUiWithSettings();
 
         _audioSuite.SettingsChanged += (_, _) => Dispatcher.InvokeAsync(SyncUiWithSettings);
@@ -90,7 +93,7 @@ public partial class AudioPanelWindow : Window
 
     private void BandSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || _audioSuite == null || _gainTexts == null) return;
 
         if (sender is Slider slider && slider.Tag is string tagStr && int.TryParse(tagStr, out var index))
         {
@@ -114,33 +117,33 @@ public partial class AudioPanelWindow : Window
 
     private void BassSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || _audioSuite == null) return;
         BassText.Text = FormatGain(e.NewValue);
         _audioSuite.SetBassBoost(e.NewValue);
     }
 
     private void TrebleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || _audioSuite == null) return;
         TrebleText.Text = FormatGain(e.NewValue);
         _audioSuite.SetTreble(e.NewValue);
     }
 
     private void NightMode_Changed(object sender, RoutedEventArgs e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || _audioSuite == null) return;
         _audioSuite.SetNightMode(NightModeCheckBox.IsChecked == true);
     }
 
     private void EnableEq_Changed(object sender, RoutedEventArgs e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || _audioSuite == null) return;
         _audioSuite.SetEnabled(EnableEqCheckBox.IsChecked == true);
     }
 
     private void PresetsCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isUpdatingUi) return;
+        if (_isUpdatingUi || _audioSuite == null) return;
 
         if (PresetsCombo.SelectedItem is string presetName)
         {
@@ -151,6 +154,7 @@ public partial class AudioPanelWindow : Window
 
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
+        if (_audioSuite == null) return;
         _audioSuite.Reset();
         SyncUiWithSettings();
     }

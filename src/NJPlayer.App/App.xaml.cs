@@ -1,17 +1,63 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
+using NJPlayer.Core.Diagnostics;
 using NJPlayer.Core.Interop;
 
 namespace NJPlayer.App;
 
 /// <summary>
-/// Interaction logic for App.xaml with single-instance named-pipe IPC and --bench cold start measurement.
+/// Interaction logic for App.xaml with single-instance named-pipe IPC,
+/// global crash telemetry logging, and --bench cold start measurement.
 /// </summary>
 public partial class App : Application
 {
     private SingleInstanceManager? _singleInstanceManager;
+
+    public App()
+    {
+        // 1. Dispatcher Unhandled Exception (UI thread)
+        DispatcherUnhandledException += App_DispatcherUnhandledException;
+
+        // 2. AppDomain Unhandled Exception (Background worker threads)
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+        // 3. TaskScheduler Unobserved Task Exception (Asynchronous tasks)
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+    }
+
+    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        // Write comprehensive crash log to %APPDATA%\NJPlayer\logs
+        var logFile = LogService.LogCrash("DispatcherUnhandledException", e.Exception);
+
+        // Mark handled to prevent hard process termination
+        e.Handled = true;
+
+        var message = $"NJ Player encountered an unexpected issue and safely recovered.\n\n" +
+                      $"Details: {e.Exception.Message}\n\n" +
+                      $"Log file saved to:\n{logFile}";
+
+        MessageBox.Show(message, "NJ Player Notice", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            LogService.LogCrash("AppDomain.UnhandledException", ex);
+        }
+    }
+
+    private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        LogService.LogError("TaskScheduler.UnobservedTaskException", e.Exception);
+        // Prevent process termination from unobserved asynchronous tasks
+        e.SetObserved();
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {

@@ -498,14 +498,14 @@ public partial class MainWindow : Window
 
         try
         {
-            // Apply visualizer filter first before stream decode
-            ApplyVisualizerFilter(vizMode);
             _player.Load(station.StreamUrl, startPaused: false);
             ApplyAudioFilters();
+            ApplyVisualizerFilter(vizMode);
             _overlay?.ShowToast($"Tuning into {station.Name}", "📻");
         }
         catch (Exception ex)
         {
+            NJPlayer.Core.Diagnostics.LogService.LogError("Radio.PlayStation", ex);
             MessageBox.Show($"Error playing radio station: {ex.Message}", "Radio Stream Error", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -513,6 +513,25 @@ public partial class MainWindow : Window
     public void ApplyVisualizerFilter(string mode)
     {
         if (_player == null || !_isDllAvailable) return;
+
+        // If mode is off, clear lavfi-complex immediately
+        if (string.IsNullOrWhiteSpace(mode) || string.Equals(mode, "off", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                _player.SetPropertyString("lavfi-complex", "");
+            }
+            catch { }
+            return;
+        }
+
+        // Only apply lavfi-complex if there is an active media/stream playing
+        if (string.IsNullOrWhiteSpace(_currentFilePath))
+        {
+            _currentVisualizerMode = mode;
+            return;
+        }
+
         var filter = Features.Radio.RadioBrowserService.BuildVisualizerFilter(mode);
         try
         {
@@ -520,7 +539,13 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[NJPlayer] Visualizer filter apply error: {ex.Message}");
+            NJPlayer.Core.Diagnostics.LogService.LogError("Visualizer.ApplyFilter", ex);
+            try
+            {
+                _player.SetPropertyString("lavfi-complex", "");
+            }
+            catch { }
+            _overlay?.ShowToast("Visualizer unavailable for this stream", "⚡", isError: true);
         }
     }
 
@@ -985,6 +1010,9 @@ public partial class MainWindow : Window
 
         _downloaderWindow?.ForceClose();
         _downloaderWindow = null;
+
+        _radioPanelWindow?.ForceClose();
+        _radioPanelWindow = null;
 
         try
         {
