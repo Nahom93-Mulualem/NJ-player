@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Quality Review, Playback Benchmarking & QA Matrix (Prompt 14)**:
+  - `docs/BENCHMARK.md`: Automated performance benchmark tracking cold start to 1st frame, seek latency, CPU %, and memory usage across 5 standardized profiles (H.264 1080p, HEVC 10-bit 4K, 4K HDR, MKV multi-track, and FLAC audio).
+  - `scripts/benchmark.ps1`: Automated PowerShell execution harness profiling process launch, memory, and seek latency metrics.
+  - `docs/QA-CHECKLIST.md`: Comprehensive manual test matrix covering Windows 10/11, NVIDIA/AMD/Intel hardware decoding, high DPI scaling (100% to 200%), multi-monitor moves, broken/corrupted streams, and offline network behaviors.
+  - Full codebase review: verified clean disposal of all Win32 handles and mpv contexts, no string concatenation on paths, bit-exact zero-allocation filters on bypass, and zero compile warnings in Release.
+- **Packaging, Automated Release & Distribution (Prompt 13)**:
+  - `installer/NJPlayer.iss`: Production Inno Setup script providing modern per-user installation into `{localappdata}\Programs\NJPlayer` without requiring administrative UAC elevation, Start Menu shortcut, optional Desktop icon, clean uninstaller, and user file associations for video (.mp4, .mkv, .avi, .webm, .mov) and audio (.mp3, .flac, .wav, .m4a, .ogg).
+  - `scripts/build-release.ps1`: Automated packaging script compiling self-contained x64 Release builds (`dotnet publish`), packaging portable ZIP with `portable.flag`, and generating `SHA256SUMS.txt` cryptographic hashes.
+  - `.github/workflows/build-and-release.yml`: Complete GitHub Actions CI/CD pipeline building, running tests, assembling artifacts, and publishing GitHub Releases on tag pushes (`v*`).
+  - `THIRD-PARTY-NOTICES.txt`: Comprehensive license documentation covering libmpv (LGPL-2.1+), FFmpeg/ffprobe (LGPL/GPL), yt-dlp (Unlicense), radio-browser.info (ODbL), and .NET runtime (MIT).
+  - `manifests/n/NahomMulualem/NJPlayer/1.0.0/`: Complete draft WinGet package manifests (version, installer, locale) ready for Windows Package Manager repository submission.
 - **Online Radio Browser & Real-Time Audio Visualizer (`NJPlayer.Features` & `NJPlayer.App`)**:
   - `RadioBrowserService`: Community-driven radio directory client using `radio-browser.info` with dynamic DNS round-robin server resolution (`all.api.radio-browser.info`) and multi-mirror fallback (`de1`, `nl1`, `at1`).
   - Country filtering with **Ethiopia (ET)** pinned at index 0, followed by "All Countries" and global station queries.

@@ -1,0 +1,86 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    name: Build & Test (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore NJPlayer.sln
+
+      - name: Build Solution
+        run: dotnet build NJPlayer.sln -c Release --no-restore
+
+      - name: Run Unit Tests
+        run: dotnet test NJPlayer.sln -c Release --no-build --verbosity normal
+
+      - name: Publish Self-Contained x64
+        run: |
+          dotnet publish src/NJPlayer.App/NJPlayer.App.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=none `
+            -o artifacts/publish/win-x64
+
+      - name: Bundle Portable ZIP and Notices
+        run: |
+          $publish = "artifacts/publish/win-x64"
+          Copy-Item "THIRD-PARTY-NOTICES.txt" -Destination $publish -Force
+          Copy-Item "README.md" -Destination $publish -Force
+          New-Item -ItemType File -Path "$publish/portable.flag" -Force | Out-Null
+          
+          New-Item -ItemType Directory -Path "artifacts/dist" -Force | Out-Null
+          Compress-Archive -Path "$publish/*" -DestinationPath "artifacts/dist/NJPlayer-win-x64-portable.zip" -CompressionLevel Optimal
+
+      - name: Generate SHA-256 Checksums
+        run: |
+          $hashes = @()
+          Get-ChildItem -Path "artifacts/dist" -File | ForEach-Object {
+            $h = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash
+            $hashes += "$h  $($_.Name)"
+          }
+          $hashes | Out-File -FilePath "artifacts/dist/SHA256SUMS.txt" -Encoding utf8
+          Get-Content "artifacts/dist/SHA256SUMS.txt"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NJPlayer-win-x64-release
+          path: artifacts/dist/*
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/dist/NJPlayer-win-x64-portable.zip
+            artifacts/dist/SHA256SUMS.txt
+          draft: false
+          prerelease: false
+          generate_release_notes: true

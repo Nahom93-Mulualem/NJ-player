@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: NahomMulualem.NJPlayer
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: Nahom Mulualem
+PublisherUrl: https://github.com/Nahom93-Mulualem/NJ-player
+PublisherSupportUrl: https://github.com/Nahom93-Mulualem/NJ-player/issues
+PackageName: NJ Player
+PackageUrl: https://github.com/Nahom93-Mulualem/NJ-player
+License: GPL-3.0-or-later
+LicenseUrl: https://github.com/Nahom93-Mulualem/NJ-player/blob/master/LICENSE
+ShortDescription: Free, fast, dark electric cyan Windows video and audio player inspired by PotPlayer.
+Description: |
+  NJ Player is a high-performance Windows media player powered by libmpv and C# WPF.
+  Features include instant seeking, hardware-accelerated video decoding, frameless dark UI,
+  10-band equalizer, Ge'ez/Amharic subtitle support, lossless stream-copy trimmer,
+  community radio browser with Ethiopia station discovery, and real-time audio visualizers.
+Moniker: njplayer
+Tags:
+  - player
+  - video
+  - audio
+  - media
+  - mpv
+  - ffmpeg
+  - potplayer
+  - visualizer
+  - radio
+ReleaseNotesUrl: https://github.com/Nahom93-Mulualem/NJ-player/releases/tag/v1.0.0
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
