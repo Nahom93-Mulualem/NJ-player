@@ -99,25 +99,55 @@ public sealed class MpvPlayer : IDisposable
     public void Play()
     {
         EnsureInitialized();
-        _context!.SetPropertyFlag("pause", false);
+        try
+        {
+            _context!.SetPropertyFlag("pause", false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] Play failed: {ex.Message}");
+        }
     }
 
     public void Pause()
     {
         EnsureInitialized();
-        _context!.SetPropertyFlag("pause", true);
+        try
+        {
+            _context!.SetPropertyFlag("pause", true);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] Pause failed: {ex.Message}");
+        }
     }
 
     public void TogglePause()
     {
         EnsureInitialized();
-        _context!.Command("cycle", "pause");
+        if (Duration <= TimeSpan.Zero) return;
+        try
+        {
+            _context!.Command("cycle", "pause");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] TogglePause failed: {ex.Message}");
+        }
     }
 
     public void Stop()
     {
         EnsureInitialized();
-        _context!.Command("stop");
+        if (Duration <= TimeSpan.Zero) return;
+        try
+        {
+            _context!.Command("stop");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] Stop failed: {ex.Message}");
+        }
     }
 
     public void Seek(double seconds, bool exact = false)
@@ -154,55 +184,115 @@ public sealed class MpvPlayer : IDisposable
     {
         EnsureInitialized();
         volume = Math.Clamp(volume, 0.0, 150.0);
-        _context!.SetPropertyDouble("volume", volume);
+        try
+        {
+            _context!.SetPropertyDouble("volume", volume);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] SetVolume failed: {ex.Message}");
+        }
     }
 
     public void SetSpeed(double speed)
     {
         EnsureInitialized();
         speed = Math.Clamp(speed, 0.01, 100.0);
-        _context!.SetPropertyDouble("speed", speed);
+        try
+        {
+            _context!.SetPropertyDouble("speed", speed);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] SetSpeed failed: {ex.Message}");
+        }
     }
 
     public void SetPropertyString(string name, string value)
     {
         EnsureInitialized();
-        _context!.SetPropertyString(name, value);
+        try
+        {
+            _context!.SetPropertyString(name, value);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] SetPropertyString('{name}') failed: {ex.Message}");
+        }
     }
 
     public void SetPropertyDouble(string name, double value)
     {
         EnsureInitialized();
-        _context!.SetPropertyDouble(name, value);
+        try
+        {
+            _context!.SetPropertyDouble(name, value);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] SetPropertyDouble('{name}') failed: {ex.Message}");
+        }
     }
 
     public void SetPropertyFlag(string name, bool value)
     {
         EnsureInitialized();
-        _context!.SetPropertyFlag(name, value);
+        try
+        {
+            _context!.SetPropertyFlag(name, value);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] SetPropertyFlag('{name}') failed: {ex.Message}");
+        }
     }
 
     public string? GetPropertyString(string name)
     {
-        EnsureInitialized();
-        return _context!.GetPropertyString(name);
+        if (!_isInitialized || _context == null) return null;
+        try
+        {
+            return _context.GetPropertyString(name);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] GetPropertyString('{name}') failed: {ex.Message}");
+            return null;
+        }
     }
 
     public double? GetPropertyDouble(string name)
     {
-        EnsureInitialized();
-        return _context!.GetPropertyDouble(name);
+        if (!_isInitialized || _context == null) return null;
+        try
+        {
+            return _context.GetPropertyDouble(name);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] GetPropertyDouble('{name}') failed: {ex.Message}");
+            return null;
+        }
     }
 
     public bool? GetPropertyFlag(string name)
     {
-        EnsureInitialized();
-        return _context!.GetPropertyFlag(name);
+        if (!_isInitialized || _context == null) return null;
+        try
+        {
+            return _context.GetPropertyFlag(name);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] GetPropertyFlag('{name}') failed: {ex.Message}");
+            return null;
+        }
     }
 
     public void AddSubtitle(string filePath, bool select = true)
     {
         if (string.IsNullOrWhiteSpace(filePath)) return;
+        if (Duration <= TimeSpan.Zero) return;
         Command("sub-add", filePath, select ? "select" : "auto");
     }
 
@@ -223,18 +313,27 @@ public sealed class MpvPlayer : IDisposable
 
     public void ToggleSubtitles()
     {
+        if (Duration <= TimeSpan.Zero) return;
         Command("cycle", "sub-visibility");
     }
 
     public void CycleSubtitles()
     {
+        if (Duration <= TimeSpan.Zero) return;
         Command("cycle", "sub");
     }
 
     public void Command(params string[] args)
     {
         EnsureInitialized();
-        _context!.Command(args);
+        try
+        {
+            _context!.Command(args);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] Command '{string.Join(" ", args)}' failed: {ex.Message}");
+        }
     }
 
     private void EnsureInitialized()

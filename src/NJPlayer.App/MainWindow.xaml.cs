@@ -976,198 +976,323 @@ public partial class MainWindow : Window
 
     private void ExecuteCommand(NJPlayer.Core.Hotkeys.CommandId command)
     {
-        switch (command)
+        try
         {
-            case NJPlayer.Core.Hotkeys.CommandId.PlayPause:
-                _player?.TogglePause();
-                break;
+            var isMediaLoaded = _player != null && _player.Duration > TimeSpan.Zero;
 
-            case NJPlayer.Core.Hotkeys.CommandId.VolumeUp5:
-                var vUp = Math.Min(150, (_player?.Volume ?? 100) + 5);
-                _player?.SetVolume(vUp);
-                _overlay?.ShowToast($"Volume {vUp:F0}%", "🔊");
-                break;
+            switch (command)
+            {
+                case NJPlayer.Core.Hotkeys.CommandId.PlayPause:
+                    if (!isMediaLoaded)
+                    {
+                        if (_playlistManager.Items.Count > 0)
+                        {
+                            _playlistManager.SetCurrentIndex(Math.Max(0, _playlistManager.CurrentIndex));
+                        }
+                        else
+                        {
+                            _overlay?.ShowToast("No media loaded", "⏸");
+                        }
+                    }
+                    else
+                    {
+                        _player?.TogglePause();
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.VolumeDown5:
-                var vDown = Math.Max(0, (_player?.Volume ?? 100) - 5);
-                _player?.SetVolume(vDown);
-                _overlay?.ShowToast($"Volume {vDown:F0}%", vDown > 0 ? "🔉" : "🔇");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.VolumeUp5:
+                    var vUp = Math.Min(150, (_player?.Volume ?? 100) + 5);
+                    _player?.SetVolume(vUp);
+                    _overlay?.ShowToast($"Volume {vUp:F0}%", "🔊");
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.Mute:
-                var curVol = _player?.Volume ?? 100;
-                if (curVol > 0)
-                {
-                    _lastNonMuteVolume = curVol;
-                    _player?.SetVolume(0);
-                    _overlay?.ShowToast("Mute", "🔇");
-                }
-                else
-                {
-                    var targetVol = _lastNonMuteVolume > 0 ? _lastNonMuteVolume : 100;
-                    _player?.SetVolume(targetVol);
-                    _overlay?.ShowToast($"Volume {targetVol:F0}%", "🔊");
-                }
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.VolumeDown5:
+                    var vDown = Math.Max(0, (_player?.Volume ?? 100) - 5);
+                    _player?.SetVolume(vDown);
+                    _overlay?.ShowToast($"Volume {vDown:F0}%", vDown > 0 ? "🔉" : "🔇");
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekForward10s:
-                _player?.SeekRelative(10, exact: false);
-                _overlay?.ShowToast("+10 s", "⏩");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.Mute:
+                    var curVol = _player?.Volume ?? 100;
+                    if (curVol > 0)
+                    {
+                        _lastNonMuteVolume = curVol;
+                        _player?.SetVolume(0);
+                        _overlay?.ShowToast("Mute", "🔇");
+                    }
+                    else
+                    {
+                        var targetVol = _lastNonMuteVolume > 0 ? _lastNonMuteVolume : 100;
+                        _player?.SetVolume(targetVol);
+                        _overlay?.ShowToast($"Volume {targetVol:F0}%", "🔊");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekBackward10s:
-                _player?.SeekRelative(-10, exact: false);
-                _overlay?.ShowToast("-10 s", "⏪");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekForward10s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(10, exact: false);
+                        _overlay?.ShowToast("+10 s", "⏩");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekForward5s:
-                _player?.SeekRelative(5, exact: false);
-                _overlay?.ShowToast("+5 s", "⏩");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekBackward10s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(-10, exact: false);
+                        _overlay?.ShowToast("-10 s", "⏪");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekBackward5s:
-                _player?.SeekRelative(-5, exact: false);
-                _overlay?.ShowToast("-5 s", "⏪");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekForward5s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(5, exact: false);
+                        _overlay?.ShowToast("+5 s", "⏩");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekForward1s:
-                _player?.SeekRelative(1, exact: true);
-                _overlay?.ShowToast("+1 s", "⏩");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekBackward5s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(-5, exact: false);
+                        _overlay?.ShowToast("-5 s", "⏪");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekBackward1s:
-                _player?.SeekRelative(-1, exact: true);
-                _overlay?.ShowToast("-1 s", "⏪");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekForward1s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(1, exact: true);
+                        _overlay?.ShowToast("+1 s", "⏩");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekForward30s:
-                _player?.SeekRelative(30, exact: false);
-                _overlay?.ShowToast("+30 s", "⏩");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekBackward1s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(-1, exact: true);
+                        _overlay?.ShowToast("-1 s", "⏪");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SeekBackward30s:
-                _player?.SeekRelative(-30, exact: false);
-                _overlay?.ShowToast("-30 s", "⏪");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekForward30s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(30, exact: false);
+                        _overlay?.ShowToast("+30 s", "⏩");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SpeedUp:
-                var spdUp = Math.Round((_player?.Speed ?? 1.0) + 0.1, 2);
-                _player?.SetSpeed(spdUp);
-                _overlay?.ShowToast($"Speed {spdUp:0.0#}x", "⚡");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SeekBackward30s:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SeekRelative(-30, exact: false);
+                        _overlay?.ShowToast("-30 s", "⏪");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SpeedDown:
-                var spdDown = Math.Round(Math.Max(0.1, (_player?.Speed ?? 1.0) - 0.1), 2);
-                _player?.SetSpeed(spdDown);
-                _overlay?.ShowToast($"Speed {spdDown:0.0#}x", "⚡");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SpeedUp:
+                    if (isMediaLoaded)
+                    {
+                        var spdUp = Math.Round((_player?.Speed ?? 1.0) + 0.1, 2);
+                        _player?.SetSpeed(spdUp);
+                        _overlay?.ShowToast($"Speed {spdUp:0.0#}x", "⚡");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.ResetSpeed:
-                _player?.SetSpeed(1.0);
-                _overlay?.ShowToast("Speed 1.0x", "⚡");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SpeedDown:
+                    if (isMediaLoaded)
+                    {
+                        var spdDown = Math.Round(Math.Max(0.1, (_player?.Speed ?? 1.0) - 0.1), 2);
+                        _player?.SetSpeed(spdDown);
+                        _overlay?.ShowToast($"Speed {spdDown:0.0#}x", "⚡");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SubtitleDelayPlus:
-                _subDelayMs += 100;
-                _player?.Command("add", "sub-delay", "0.1");
-                _overlay?.ShowToast($"Sub Delay +{_subDelayMs} ms", "💬");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.ResetSpeed:
+                    if (isMediaLoaded)
+                    {
+                        _player?.SetSpeed(1.0);
+                        _overlay?.ShowToast("Speed 1.0x", "⚡");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SubtitleDelayMinus:
-                _subDelayMs -= 100;
-                _player?.Command("add", "sub-delay", "-0.1");
-                _overlay?.ShowToast($"Sub Delay {_subDelayMs} ms", "💬");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SubtitleDelayPlus:
+                    if (isMediaLoaded)
+                    {
+                        _subDelayMs += 100;
+                        _player?.Command("add", "sub-delay", "0.1");
+                        _overlay?.ShowToast($"Sub Delay +{_subDelayMs} ms", "💬");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.ToggleSubtitles:
-                _player?.Command("cycle", "sub-visibility");
-                _overlay?.ShowToast("Toggle Subtitles", "💬");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SubtitleDelayMinus:
+                    if (isMediaLoaded)
+                    {
+                        _subDelayMs -= 100;
+                        _player?.Command("add", "sub-delay", "-0.1");
+                        _overlay?.ShowToast($"Sub Delay {_subDelayMs} ms", "💬");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.SubtitleDownload:
-                OpenSubtitlePicker();
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.ToggleSubtitles:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Command("cycle", "sub-visibility");
+                        _overlay?.ShowToast("Toggle Subtitles", "💬");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.CycleAudioTrack:
-                _player?.Command("cycle", "audio");
-                _overlay?.ShowToast("Cycle Audio Track", "🎵");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.SubtitleDownload:
+                    OpenSubtitlePicker();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.TogglePlaylist:
-                _overlay?.TogglePlaylist();
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.CycleAudioTrack:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Command("cycle", "audio");
+                        _overlay?.ShowToast("Cycle Audio Track", "🎵");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.NextFile:
-                if (_playlistManager.Next())
-                {
-                    _overlay?.ShowToast("Next Track", "⏭");
-                }
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.TogglePlaylist:
+                    _overlay?.TogglePlaylist();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.PrevFile:
-                if (_playlistManager.Previous())
-                {
-                    _overlay?.ShowToast("Previous Track", "⏮");
-                }
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.NextFile:
+                    if (_playlistManager.Next())
+                    {
+                        _overlay?.ShowToast("Next Track", "⏭");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.ToggleFullscreen:
-                ToggleFullscreen();
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.PrevFile:
+                    if (_playlistManager.Previous())
+                    {
+                        _overlay?.ShowToast("Previous Track", "⏮");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.ExitFullscreen:
-                if (_isFullscreen) ToggleFullscreen();
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.ToggleFullscreen:
+                    ToggleFullscreen();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.OpenFile:
-                PromptOpenFile();
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.ExitFullscreen:
+                    if (_isFullscreen) ToggleFullscreen();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.ToggleAlwaysOnTop:
-                _isAlwaysOnTop = !_isAlwaysOnTop;
-                Topmost = _isAlwaysOnTop;
-                if (_overlay != null) _overlay.Topmost = _isAlwaysOnTop;
-                _overlay?.ShowToast(_isAlwaysOnTop ? "Always on Top: ON" : "Always on Top: OFF", "📌");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.OpenFile:
+                    PromptOpenFile();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.ToggleEqualizer:
-                ToggleEqualizer();
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.OpenUrl:
+                    OpenDownloader();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.JumpToStart:
-                _player?.Seek(0, exact: true);
-                _overlay?.ShowToast("Start", "⏮");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.ToggleAlwaysOnTop:
+                    _isAlwaysOnTop = !_isAlwaysOnTop;
+                    Topmost = _isAlwaysOnTop;
+                    if (_overlay != null) _overlay.Topmost = _isAlwaysOnTop;
+                    _overlay?.ShowToast(_isAlwaysOnTop ? "Always on Top: ON" : "Always on Top: OFF", "📌");
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.JumpToEnd:
-                var dur = _player?.Duration.TotalSeconds ?? 0;
-                if (dur > 0) _player?.Seek(dur, exact: true);
-                _overlay?.ShowToast("End", "⏭");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.ToggleEqualizer:
+                    ToggleEqualizer();
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.FrameStepForward:
-                _player?.Command("frame-step");
-                _overlay?.ShowToast("Frame Step +", "▶");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.JumpToStart:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Seek(0, exact: true);
+                        _overlay?.ShowToast("Start", "⏮");
+                    }
+                    break;
 
-            case NJPlayer.Core.Hotkeys.CommandId.FrameStepBackward:
-                _player?.Command("frame-back-step");
-                _overlay?.ShowToast("Frame Step -", "◀");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.JumpToEnd:
+                    var dur = _player?.Duration.TotalSeconds ?? 0;
+                    if (dur > 0)
+                    {
+                        _player?.Seek(dur, exact: true);
+                        _overlay?.ShowToast("End", "⏭");
+                    }
+                    break;
 
-            case >= NJPlayer.Core.Hotkeys.CommandId.JumpTo0Percent and <= NJPlayer.Core.Hotkeys.CommandId.JumpTo90Percent:
-                var pct = ((int)command - (int)NJPlayer.Core.Hotkeys.CommandId.JumpTo0Percent) * 10;
-                var totalDur = _player?.Duration.TotalSeconds ?? 0;
-                if (totalDur > 0)
-                {
-                    _player?.Seek(totalDur * (pct / 100.0), exact: true);
-                    _overlay?.ShowToast($"Jump to {pct}%", "⏩");
-                }
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.FrameStepForward:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Command("frame-step");
+                        _overlay?.ShowToast("Frame Step +", "▶");
+                    }
+                    break;
 
-            default:
-                _overlay?.ShowToast(command.ToString(), "⚡");
-                break;
+                case NJPlayer.Core.Hotkeys.CommandId.FrameStepBackward:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Command("frame-back-step");
+                        _overlay?.ShowToast("Frame Step -", "◀");
+                    }
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.NextChapter:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Command("add", "chapter", "1");
+                        _overlay?.ShowToast("Next Chapter", "⏭");
+                    }
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.PrevChapter:
+                    if (isMediaLoaded)
+                    {
+                        _player?.Command("add", "chapter", "-1");
+                        _overlay?.ShowToast("Previous Chapter", "⏮");
+                    }
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.Screenshot:
+                    if (isMediaLoaded)
+                    {
+                        var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                        var njDir = Path.Combine(pictures, "NJPlayer");
+                        Directory.CreateDirectory(njDir);
+                        var filename = Path.Combine(njDir, $"shot_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+                        _player?.Command("screenshot-to-file", filename);
+                        _overlay?.ShowToast("Screenshot Saved", "📸");
+                    }
+                    else
+                    {
+                        _overlay?.ShowToast("No media loaded", "📸", isError: true);
+                    }
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.MediaInfo:
+                    if (isMediaLoaded)
+                    {
+                        var title = Path.GetFileName(_currentFilePath) ?? "Media";
+                        var hwdec = _player?.HardwareDecoder ?? "Software";
+                        _overlay?.ShowToast($"{title} ({hwdec})", "ℹ");
+                    }
+                    break;
+
+                case >= NJPlayer.Core.Hotkeys.CommandId.JumpTo0Percent and <= NJPlayer.Core.Hotkeys.CommandId.JumpTo90Percent:
+                    var pct = ((int)command - (int)NJPlayer.Core.Hotkeys.CommandId.JumpTo0Percent) * 10;
+                    var totalDur = _player?.Duration.TotalSeconds ?? 0;
+                    if (totalDur > 0)
+                    {
+                        _player?.Seek(totalDur * (pct / 100.0), exact: true);
+                        _overlay?.ShowToast($"Jump to {pct}%", "⏩");
+                    }
+                    break;
+
+                default:
+                    _overlay?.ShowToast(command.ToString(), "⚡");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Hotkey execution error for {command}: {ex.Message}");
         }
     }
 

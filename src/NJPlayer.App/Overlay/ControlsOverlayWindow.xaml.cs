@@ -21,6 +21,7 @@ public partial class ControlsOverlayWindow : Window
     private readonly DoubleAnimation _fadeOutAnimation;
 
     private MpvPlayer? _player;
+    private NJPlayer.Core.Playlist.PlaylistManager? _playlistManager;
     private bool _areControlsVisible = true;
     private bool _isUserScrubbing = false;
     private bool _isAlwaysOnTop = false;
@@ -414,13 +415,23 @@ public partial class ControlsOverlayWindow : Window
 
     private void PlayPause_Click(object sender, RoutedEventArgs e)
     {
-        _player?.TogglePause();
+        if (_player == null) return;
+        if (_player.Duration <= TimeSpan.Zero)
+        {
+            if (_playlistManager != null && _playlistManager.Items.Count > 0)
+            {
+                _playlistManager.SetCurrentIndex(Math.Max(0, _playlistManager.CurrentIndex));
+            }
+            return;
+        }
+        _player.TogglePause();
         ShowControls();
     }
 
     private void Stop_Click(object sender, RoutedEventArgs e)
     {
-        _player?.Stop();
+        if (_player == null || _player.Duration <= TimeSpan.Zero) return;
+        _player.Stop();
         ShowControls();
     }
 
@@ -483,6 +494,7 @@ public partial class ControlsOverlayWindow : Window
 
     public void AttachPlaylist(NJPlayer.Core.Playlist.PlaylistManager manager)
     {
+        _playlistManager = manager;
         Drawer.AttachManager(manager);
         Drawer.ItemSelected += (_, item) =>
         {

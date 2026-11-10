@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Comprehensive Vulnerability & Idle State Hardening**:
+  - Guarded all mpv commands (`cycle pause`, `stop`, `cycle sub-visibility`, `cycle sub`, `sub-add`, `frame-step`, `frame-back-step`, `sub-delay`) against mpv error `-12` (`MPV_ERROR_COMMAND`) when the player is idle or no media is loaded.
+  - Wrapped `MpvPlayer.Command`, `Play`, `Pause`, `SetVolume`, `SetSpeed`, `SetProperty*`, and `GetProperty*` in safe exception boundaries with diagnostic trace logging, preventing unhandled exceptions from triggering the crash dialog.
+  - Hardened `MainWindow.ExecuteCommand` with top-level try/catch boundary, intelligent idle state handling (auto-starting playlist items on Play/Pause, non-intrusive toasts for idle operations), and added command handlers for `NextChapter`, `PrevChapter`, `Screenshot`, `OpenUrl`, and `MediaInfo`.
+  - Added `XamlResourceTests` suite ensuring all `{StaticResource}` keys across all XAML files resolve to defined application resources, permanently preventing XAML parsing exceptions.
 - **M3U / M3U8 Playlists & UTF-8 Drag-and-Drop (Issue 4)**:
   - Full support for opening, drag-and-drop, and saving `.m3u` and `.m3u8` playlists in UTF-8.
   - Parser parses `#EXTM3U` headers and `#EXTINF:<duration>,<title>` metadata, supporting positive durations, live stream `-1`, and Unicode characters.
