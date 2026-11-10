@@ -189,6 +189,12 @@ public partial class PlayerSeekbar : UserControl
 
     private void Seekbar_MouseMove(object sender, MouseEventArgs e)
     {
+        if (_durationSeconds <= 0)
+        {
+            HoverPopup.IsOpen = false;
+            return;
+        }
+
         var mouseX = e.GetPosition(this).X;
         var fraction = Math.Clamp(mouseX / Math.Max(1, ActualWidth), 0.0, 1.0);
         var targetSeconds = fraction * _durationSeconds;
@@ -264,6 +270,7 @@ public partial class PlayerSeekbar : UserControl
 
     private void Seekbar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (_durationSeconds <= 0) return;
         CaptureMouse();
         Focus();
         _isScrubbing = true;
@@ -285,6 +292,8 @@ public partial class PlayerSeekbar : UserControl
         {
             _isScrubbing = false;
             ReleaseMouseCapture();
+
+            if (_durationSeconds <= 0) return;
 
             var mouseX = e.GetPosition(this).X;
             var fraction = Math.Clamp(mouseX / Math.Max(1, ActualWidth), 0.0, 1.0);

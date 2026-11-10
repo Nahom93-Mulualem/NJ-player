@@ -123,15 +123,31 @@ public sealed class MpvPlayer : IDisposable
     public void Seek(double seconds, bool exact = false)
     {
         EnsureInitialized();
-        var commandArgs = MpvEventMapper.BuildSeekCommand(seconds, exact);
-        _context!.Command(commandArgs);
+        if (Duration <= TimeSpan.Zero) return;
+        try
+        {
+            var commandArgs = MpvEventMapper.BuildSeekCommand(seconds, exact);
+            _context!.Command(commandArgs);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] Seek failed: {ex.Message}");
+        }
     }
 
     public void SeekRelative(double offsetSeconds, bool exact = false)
     {
         EnsureInitialized();
-        var commandArgs = MpvEventMapper.BuildSeekRelativeCommand(offsetSeconds, exact);
-        _context!.Command(commandArgs);
+        if (Duration <= TimeSpan.Zero) return;
+        try
+        {
+            var commandArgs = MpvEventMapper.BuildSeekRelativeCommand(offsetSeconds, exact);
+            _context!.Command(commandArgs);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[NJPlayer] SeekRelative failed: {ex.Message}");
+        }
     }
 
     public void SetVolume(double volume)

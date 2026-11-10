@@ -818,14 +818,38 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select Media File - NJ Player",
-            Filter = "Media Files|*.mp4;*.mkv;*.avi;*.mov;*.webm;*.flv;*.wmv;*.ts;*.m4v;*.mp3;*.flac;*.wav;*.m4a;*.opus;*.ogg|All Files (*.*)|*.*",
+            Title = "Select Media or Playlist File - NJ Player",
+            Filter = "Media & Playlists|*.mp4;*.mkv;*.avi;*.mov;*.webm;*.flv;*.wmv;*.ts;*.m4v;*.mp3;*.flac;*.wav;*.m4a;*.opus;*.ogg;*.m3u;*.m3u8|M3U Playlists (*.m3u;*.m3u8)|*.m3u;*.m3u8|All Files (*.*)|*.*",
             Multiselect = false
         };
 
         if (dialog.ShowDialog(this) == true)
         {
-            LoadMediaFile(dialog.FileName);
+            OpenPathOrPlaylist(dialog.FileName);
+        }
+    }
+
+    public void OpenPathOrPlaylist(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        if (NJPlayer.Core.Playlist.PlaylistManager.IsPlaylistFile(path))
+        {
+            var initialCount = _playlistManager.Items.Count;
+            var added = _playlistManager.LoadM3u(path);
+            if (added > 0)
+            {
+                _playlistManager.SetCurrentIndex(initialCount);
+                _overlay?.ShowToast($"Playlist: {Path.GetFileName(path)} ({added} items)", "📋");
+            }
+            else
+            {
+                _overlay?.ShowToast("Playlist is empty or invalid", "⚠️", isError: true);
+            }
+        }
+        else
+        {
+            LoadMediaFile(path);
         }
     }
 
@@ -842,31 +866,39 @@ public partial class MainWindow : Window
         }
     }
 
+    public void HandleDropFiles(string[]? files)
+    {
+        if (files == null || files.Length == 0) return;
+
+        var initialIndex = _playlistManager.Items.Count;
+        foreach (var file in files)
+        {
+            if (Directory.Exists(file))
+            {
+                _playlistManager.AddFolder(file, recursive: true);
+            }
+            else if (NJPlayer.Core.Playlist.PlaylistManager.IsPlaylistFile(file))
+            {
+                _playlistManager.LoadM3u(file);
+            }
+            else if (File.Exists(file))
+            {
+                _playlistManager.AddFile(file);
+            }
+        }
+
+        if (_playlistManager.CurrentIndex < 0 && _playlistManager.Items.Count > initialIndex)
+        {
+            _playlistManager.SetCurrentIndex(initialIndex);
+        }
+    }
+
     private void Window_Drop(object sender, DragEventArgs e)
     {
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (files != null && files.Length > 0)
-            {
-                var initialIndex = _playlistManager.Items.Count;
-                foreach (var file in files)
-                {
-                    if (Directory.Exists(file))
-                    {
-                        _playlistManager.AddFolder(file, recursive: true);
-                    }
-                    else if (File.Exists(file))
-                    {
-                        _playlistManager.AddFile(file);
-                    }
-                }
-
-                if (_playlistManager.CurrentIndex < 0 && _playlistManager.Items.Count > initialIndex)
-                {
-                    _playlistManager.SetCurrentIndex(initialIndex);
-                }
-            }
+            HandleDropFiles(files);
         }
     }
 
@@ -976,6 +1008,16 @@ public partial class MainWindow : Window
                     _player?.SetVolume(targetVol);
                     _overlay?.ShowToast($"Volume {targetVol:F0}%", "🔊");
                 }
+                break;
+
+            case NJPlayer.Core.Hotkeys.CommandId.SeekForward10s:
+                _player?.SeekRelative(10, exact: false);
+                _overlay?.ShowToast("+10 s", "⏩");
+                break;
+
+            case NJPlayer.Core.Hotkeys.CommandId.SeekBackward10s:
+                _player?.SeekRelative(-10, exact: false);
+                _overlay?.ShowToast("-10 s", "⏪");
                 break;
 
             case NJPlayer.Core.Hotkeys.CommandId.SeekForward5s:

@@ -175,6 +175,10 @@ public partial class PlaylistDrawer : UserControl
                     {
                         _manager.AddFolder(entry, recursive: true);
                     }
+                    else if (NJPlayer.Core.Playlist.PlaylistManager.IsPlaylistFile(entry))
+                    {
+                        _manager.LoadM3u(entry);
+                    }
                     else if (File.Exists(entry))
                     {
                         _manager.AddFile(entry);
@@ -256,17 +260,21 @@ public partial class PlaylistDrawer : UserControl
         if (_manager == null) return;
 
         var menu = new ContextMenu();
-        var importItem = new MenuItem { Header = "📂 Load M3U Playlist..." };
+        var importItem = new MenuItem { Header = "📂 Load M3U / M3U8 Playlist..." };
         importItem.Click += (_, _) =>
         {
-            var dlg = new OpenFileDialog { Filter = "M3U Playlists|*.m3u;*.m3u8|All Files (*.*)|*.*" };
+            var dlg = new OpenFileDialog { Filter = "M3U/M3U8 Playlists|*.m3u;*.m3u8|All Files (*.*)|*.*" };
             if (dlg.ShowDialog() == true) _manager.LoadM3u(dlg.FileName);
         };
 
-        var exportItem = new MenuItem { Header = "💾 Save M3U Playlist..." };
+        var exportItem = new MenuItem { Header = "💾 Save M3U / M3U8 Playlist..." };
         exportItem.Click += (_, _) =>
         {
-            var dlg = new SaveFileDialog { Filter = "M3U Playlist|*.m3u", DefaultExt = ".m3u" };
+            var dlg = new SaveFileDialog
+            {
+                Filter = "M3U8 Playlist (*.m3u8)|*.m3u8|M3U Playlist (*.m3u)|*.m3u",
+                DefaultExt = ".m3u8"
+            };
             if (dlg.ShowDialog() == true) _manager.SaveM3u(dlg.FileName);
         };
 

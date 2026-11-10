@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **M3U / M3U8 Playlists & UTF-8 Drag-and-Drop (Issue 4)**:
+  - Full support for opening, drag-and-drop, and saving `.m3u` and `.m3u8` playlists in UTF-8.
+  - Parser parses `#EXTM3U` headers and `#EXTINF:<duration>,<title>` metadata, supporting positive durations, live stream `-1`, and Unicode characters.
+  - Automatic detection and preservation of web stream URLs (`http://`, `https://`, `rtmp://`, `rtsp://`) without prepending base directory paths.
+  - Resolution of relative file paths against the playlist directory, alongside absolute file paths.
+  - Integrated `.m3u`/`.m3u8` into Open File dialog (<kbd>Ctrl+O</kbd>), drag & drop onto main window and controls overlay, and Save dialog in Playlist Drawer.
+- **Skip Backward & Forward Buttons with Long-Press Repeat (Issue 5)**:
+  - Added Skip Backward 10s (`⏪`) and Skip Forward 10s (`⏩`) buttons flanking the Play/Pause button.
+  - Single click executes immediate +/-10 seconds seek with visual on-screen toast notifications.
+  - Long-press repeat timer (400ms initial threshold, 120ms repeat ticks) smoothly continues seeking while held.
+  - Removed the visual Stop button from the bottom control bar to free up room for seek controls, while keeping the <kbd>S</kbd> hotkey active.
+  - Tooltips indicating shortcut keys: `Skip Backward 10s (Left Arrow)` and `Skip Forward 10s (Right Arrow)`.
+- **Seek Idle Crash Guard & VideoHost Black Surface**:
+  - Guarded `MpvPlayer.Seek` and `SeekRelative` to prevent mpv command error `-12` when seekbar is hovered or scrubbed with no media playing.
+  - Added `SS_BLACKRECT` (0x04) style to `VideoHost` Win32 child window ensuring the video surface is always pure black (`#000000`) and never flashes white.
+
+### Added / Fixed
 - **Overlay Window Synchronization, Responsive Reflow & Official Branding (Issue 3)**:
   - Synchronized `ControlsOverlayWindow` dimensions with `MainWindow` using Win32 `GetWindowRect` and `SetWindowPos`, eliminating the floating 980px bar on maximize.
   - Native work area maximize clamping and true fullscreen spanning the physical monitor with title bar/taskbar hidden.

@@ -263,14 +263,24 @@ public sealed class PlaylistManager
 
     // --- M3U / M3U8 Playlist Support ---
 
-    public void LoadM3u(string m3uPath)
+    public static bool IsPlaylistFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return false;
+        var ext = Path.GetExtension(filePath);
+        return string.Equals(ext, ".m3u", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(ext, ".m3u8", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public int LoadM3u(string m3uPath)
     {
         ArgumentNullException.ThrowIfNull(m3uPath);
-        if (!File.Exists(m3uPath)) return;
+        if (!File.Exists(m3uPath)) return 0;
 
         var baseDir = Path.GetDirectoryName(m3uPath) ?? string.Empty;
-        var lines = File.ReadAllLines(m3uPath);
+        var lines = File.ReadAllLines(m3uPath, Encoding.UTF8);
         string? nextTitle = null;
+        TimeSpan? nextDuration = null;
+        int addedCount = 0;
 
         foreach (var rawLine in lines)
         {
@@ -279,25 +289,60 @@ public sealed class PlaylistManager
 
             if (line.StartsWith("#EXTINF:", StringComparison.OrdinalIgnoreCase))
             {
-                var commaIndex = line.IndexOf(',');
-                if (commaIndex >= 0 && commaIndex < line.Length - 1)
+                var info = line["#EXTINF:".Length..].Trim();
+                var commaIndex = info.IndexOf(',');
+                if (commaIndex >= 0)
                 {
-                    nextTitle = line[(commaIndex + 1)..].Trim();
+                    var durPart = info[..commaIndex].Trim();
+                    if (double.TryParse(durPart, System.Globalization.CultureInfo.InvariantCulture, out var secs) && secs > 0)
+                    {
+                        nextDuration = TimeSpan.FromSeconds(secs);
+                    }
+                    nextTitle = info[(commaIndex + 1)..].Trim();
+                }
+                else
+                {
+                    nextTitle = info;
                 }
             }
             else if (!line.StartsWith('#'))
             {
-                var fullPath = Path.IsPathRooted(line) ? line : Path.Combine(baseDir, line);
-                if (File.Exists(fullPath) || Uri.TryCreate(fullPath, UriKind.Absolute, out _))
+                string targetPath;
+                bool isWeb = Uri.TryCreate(line, UriKind.Absolute, out var uri) &&
+                             (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps ||
+                              uri.Scheme == "rtmp" || uri.Scheme == "rtsp" || uri.Scheme == "mms");
+
+                if (isWeb)
                 {
-                    _items.Add(new PlaylistItem(fullPath, nextTitle));
+                    targetPath = line;
                 }
+                else if (Path.IsPathRooted(line))
+                {
+                    targetPath = line;
+                }
+                else
+                {
+                    targetPath = Path.GetFullPath(Path.Combine(baseDir, line));
+                }
+
+                if (isWeb || File.Exists(targetPath) || Uri.TryCreate(targetPath, UriKind.Absolute, out _))
+                {
+                    _items.Add(new PlaylistItem(targetPath, nextTitle, nextDuration));
+                    addedCount++;
+                }
+
                 nextTitle = null;
+                nextDuration = null;
             }
         }
 
-        if (_isShuffled) GenerateShuffleOrder();
-        PlaylistStateChanged?.Invoke(this, EventArgs.Empty);
+        if (addedCount > 0)
+        {
+            if (_isShuffled) GenerateShuffleOrder();
+            PlaylistStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        return addedCount;
     }
 
     public void SaveM3u(string m3uPath)
@@ -308,13 +353,17 @@ public sealed class PlaylistManager
 
         foreach (var item in _items)
         {
-            var durSeconds = (int)item.Duration.TotalSeconds;
-            sb.AppendLine($"#EXTINF:{durSeconds},{item.Title}");
+            var durSeconds = item.Duration > TimeSpan.Zero ? (int)item.Duration.TotalSeconds : -1;
+            var title = !string.IsNullOrWhiteSpace(item.Title) ? item.Title : Path.GetFileName(item.FilePath);
+            sb.AppendLine($"#EXTINF:{durSeconds},{title}");
             sb.AppendLine(item.FilePath);
         }
 
-        File.WriteAllText(m3uPath, sb.ToString(), Encoding.UTF8);
+        var utf8 = new UTF8Encoding(false);
+        File.WriteAllText(m3uPath, sb.ToString(), utf8);
     }
+
+    public void SaveM3u8(string m3u8Path) => SaveM3u(m3u8Path);
 
     // --- JSON Persistence ---
 

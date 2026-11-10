@@ -13,6 +13,9 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         Focusable="False"
+        AllowDrop="True"
+        DragOver="Overlay_DragOver"
+        Drop="Overlay_Drop"
         MouseMove="Window_MouseMove"
         MouseLeave="Window_MouseLeave"
         KeyDown="Window_KeyDown">
@@ -125,13 +128,31 @@
 
                     <!-- Left: Playback controls -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Skip Backward 10s -->
+                        <Button x:Name="SkipBackwardButton"
+                                Style="{StaticResource IconButton}"
+                                ToolTip="Skip Backward 10s (Left Arrow)"
+                                PreviewMouseLeftButtonDown="SkipBackward_PreviewMouseLeftButtonDown"
+                                PreviewMouseLeftButtonUp="SeekButton_PreviewMouseLeftButtonUp"
+                                MouseLeave="SeekButton_MouseLeave"
+                                Margin="0,0,4,0">
+                            <TextBlock Text="⏪" FontSize="13" />
+                        </Button>
+
                         <!-- Play/Pause -->
                         <Button x:Name="PlayPauseButton" Style="{StaticResource IconButton}" ToolTip="Play / Pause (Space)" Click="PlayPause_Click">
                             <TextBlock x:Name="PlayPauseIcon" Text="▶" FontSize="14" Foreground="{StaticResource AccentBrush}" />
                         </Button>
-                        <!-- Stop -->
-                        <Button x:Name="StopButton" Style="{StaticResource IconButton}" ToolTip="Stop" Click="Stop_Click" Margin="4,0,0,0">
-                            <TextBlock Text="⏹" FontSize="12" />
+
+                        <!-- Skip Forward 10s -->
+                        <Button x:Name="SkipForwardButton"
+                                Style="{StaticResource IconButton}"
+                                ToolTip="Skip Forward 10s (Right Arrow)"
+                                PreviewMouseLeftButtonDown="SkipForward_PreviewMouseLeftButtonDown"
+                                PreviewMouseLeftButtonUp="SeekButton_PreviewMouseLeftButtonUp"
+                                MouseLeave="SeekButton_MouseLeave"
+                                Margin="4,0,0,0">
+                            <TextBlock Text="⏩" FontSize="13" />
                         </Button>
 
                         <!-- Time display -->

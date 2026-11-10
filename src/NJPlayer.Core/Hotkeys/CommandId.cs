@@ -8,6 +8,8 @@ public enum CommandId
     None = 0,
     PlayPause,
     Mute,
+    SeekForward10s,
+    SeekBackward10s,
     SeekForward5s,
     SeekBackward5s,
     SeekForward1s,

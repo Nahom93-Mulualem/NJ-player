@@ -12,6 +12,7 @@ public sealed class VideoHost : HwndHost
     private const int WsChild = 0x40000000;
     private const int WsVisible = 0x10000000;
     private const int WsClipChildren = 0x02000000;
+    private const int SsBlackRect = 0x00000004;
 
     [DllImport("user32.dll", SetLastError = true, EntryPoint = "CreateWindowExW")]
     private static extern IntPtr CreateWindowEx(
@@ -36,7 +37,7 @@ public sealed class VideoHost : HwndHost
             0,
             "static",
             "NJPlayerVideoHost",
-            WsChild | WsVisible | WsClipChildren,
+            WsChild | WsVisible | WsClipChildren | SsBlackRect,
             0, 0,
             Math.Max(1, (int)ActualWidth),
             Math.Max(1, (int)ActualHeight),

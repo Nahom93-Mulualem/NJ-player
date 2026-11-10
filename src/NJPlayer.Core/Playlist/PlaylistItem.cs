@@ -22,9 +22,26 @@ public sealed class PlaylistItem
     public PlaylistItem(string filePath, string? title = null, TimeSpan? duration = null)
     {
         FilePath = filePath ?? string.Empty;
-        Title = string.IsNullOrWhiteSpace(title)
-            ? (Path.GetFileNameWithoutExtension(filePath) ?? "Untitled")
-            : title;
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            Title = title;
+        }
+        else
+        {
+            try
+            {
+                Title = Path.GetFileNameWithoutExtension(FilePath);
+            }
+            catch
+            {
+                Title = FilePath;
+            }
+
+            if (string.IsNullOrWhiteSpace(Title))
+            {
+                Title = FilePath;
+            }
+        }
         Duration = duration ?? TimeSpan.Zero;
     }
 

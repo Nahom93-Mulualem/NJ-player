@@ -16,6 +16,7 @@ public partial class ControlsOverlayWindow : Window
 {
     private readonly MainWindow _mainWindow;
     private readonly DispatcherTimer _autoHideTimer;
+    private readonly DispatcherTimer _seekRepeatTimer;
     private readonly DoubleAnimation _fadeInAnimation;
     private readonly DoubleAnimation _fadeOutAnimation;
 
@@ -23,6 +24,8 @@ public partial class ControlsOverlayWindow : Window
     private bool _areControlsVisible = true;
     private bool _isUserScrubbing = false;
     private bool _isAlwaysOnTop = false;
+    private double _seekRepeatDelta = 0;
+    private bool _isRepeating = false;
 
     public ControlsOverlayWindow(MainWindow mainWindow)
     {
@@ -36,6 +39,10 @@ public partial class ControlsOverlayWindow : Window
             Interval = TimeSpan.FromMilliseconds(2500)
         };
         _autoHideTimer.Tick += AutoHideTimer_Tick;
+
+        // Long-press repeat timer for +/-10s seek buttons
+        _seekRepeatTimer = new DispatcherTimer();
+        _seekRepeatTimer.Tick += SeekRepeatTimer_Tick;
 
         // Fast motion animations (120ms per DESIGN.md)
         _fadeInAnimation = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(120));
@@ -305,12 +312,104 @@ public partial class ControlsOverlayWindow : Window
         });
     }
 
+    // --- Drag & Drop Delegation ---
+
+    private void Overlay_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DragDropEffects.Copy;
+            e.Handled = true;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
+    }
+
+    private void Overlay_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            _mainWindow.HandleDropFiles(files);
+            e.Handled = true;
+        }
+    }
+
     // --- Interactive Control Handlers ---
 
     private void Seekbar_SeekRequested(object? sender, Views.SeekEventArgs e)
     {
-        _player?.Seek(e.TargetSeconds, exact: e.IsExact);
+        if (_player != null && _player.Duration > TimeSpan.Zero)
+        {
+            _player.Seek(e.TargetSeconds, exact: e.IsExact);
+        }
         RestartAutoHideTimer();
+    }
+
+    private void StartSeekHold(double deltaSeconds)
+    {
+        if (_player == null || _player.Duration <= TimeSpan.Zero) return;
+
+        _seekRepeatDelta = deltaSeconds;
+        _isRepeating = false;
+
+        // Perform immediate 10s seek on first click
+        _player.SeekRelative(deltaSeconds, exact: false);
+        ShowToast(deltaSeconds > 0 ? "+10 s" : "-10 s", deltaSeconds > 0 ? "⏩" : "⏪");
+        ShowControls();
+
+        // 400ms threshold before repeating
+        _seekRepeatTimer.Stop();
+        _seekRepeatTimer.Interval = TimeSpan.FromMilliseconds(400);
+        _seekRepeatTimer.Start();
+    }
+
+    private void SeekRepeatTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_player == null || _player.Duration <= TimeSpan.Zero)
+        {
+            _seekRepeatTimer.Stop();
+            return;
+        }
+
+        if (!_isRepeating)
+        {
+            _isRepeating = true;
+            _seekRepeatTimer.Interval = TimeSpan.FromMilliseconds(120); // Smooth repeat tick rate
+        }
+
+        _player.SeekRelative(_seekRepeatDelta, exact: false);
+        ShowToast(_seekRepeatDelta > 0 ? "+10 s" : "-10 s", _seekRepeatDelta > 0 ? "⏩" : "⏪");
+        ShowControls();
+    }
+
+    private void StopSeekHold()
+    {
+        _seekRepeatTimer.Stop();
+        _isRepeating = false;
+        RestartAutoHideTimer();
+    }
+
+    private void SkipBackward_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        StartSeekHold(-10.0);
+    }
+
+    private void SkipForward_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        StartSeekHold(10.0);
+    }
+
+    private void SeekButton_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        StopSeekHold();
+    }
+
+    private void SeekButton_MouseLeave(object sender, MouseEventArgs e)
+    {
+        StopSeekHold();
     }
 
     private void PlayPause_Click(object sender, RoutedEventArgs e)
