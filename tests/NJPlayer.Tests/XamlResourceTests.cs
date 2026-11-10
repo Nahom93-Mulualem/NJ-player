@@ -73,3 +73,4 @@ public class XamlResourceTests
         Assert.Empty(missingResources);
     }
 }
+
