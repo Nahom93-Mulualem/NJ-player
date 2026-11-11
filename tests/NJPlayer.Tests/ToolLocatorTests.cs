@@ -32,3 +32,4 @@ public class ToolLocatorTests
         Assert.Equal(Path.Combine(baseDir, "libs", "yt-dlp.exe"), result.SearchedPaths[1]);
     }
 }
+

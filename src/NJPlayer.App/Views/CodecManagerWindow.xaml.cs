@@ -95,3 +95,4 @@ public partial class CodecManagerWindow : Window
         Close();
     }
 }
+

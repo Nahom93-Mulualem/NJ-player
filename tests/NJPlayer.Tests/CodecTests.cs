@@ -36,3 +36,4 @@ public class CodecTests
         Assert.Equal(expectedAcc, info.IsHardwareAccelerated);
     }
 }
+
