@@ -47,7 +47,14 @@
 
                     <!-- Missing FFmpeg Notice (hidden if available) -->
                     <Border x:Name="MissingFfmpegBanner" Background="#26FF5C6C" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="12,10" Margin="0,0,0,14" Visibility="Collapsed">
-                        <TextBlock Text="⚠️ ffmpeg.exe was not found. Please place ffmpeg.exe into the 'libs' folder to enable trimming." Foreground="{StaticResource DangerBrush}" FontSize="12" TextWrapping="Wrap" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="⚠️ ffmpeg.exe was not found. Place ffmpeg.exe into the 'libs' folder or system PATH to enable trimming." Foreground="{StaticResource DangerBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Padding="8,4" Background="Transparent" Foreground="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" Content="How to fix" Cursor="Hand" Click="HowToFixFfmpeg_Click" VerticalAlignment="Center" />
+                        </Grid>
                     </Border>
 
                     <!-- In/Out Points Section -->

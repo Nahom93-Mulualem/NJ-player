@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using NJPlayer.Core.Tools;
 
 namespace NJPlayer.Features.Trimmer;
 
@@ -27,43 +28,36 @@ public sealed class MediaTrimmerService
     private static readonly Regex TimeRegex = new(@"time=([0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{2})", RegexOptions.Compiled);
 
     private readonly string? _ffmpegPath;
+    private readonly ToolLookupResult _lookupResult;
 
     public MediaTrimmerService(string? customFfmpegPath = null)
     {
-        _ffmpegPath = customFfmpegPath ?? FindFfmpegBinary();
+        if (!string.IsNullOrEmpty(customFfmpegPath))
+        {
+            _ffmpegPath = customFfmpegPath;
+            _lookupResult = new ToolLookupResult(
+                "ffmpeg.exe",
+                File.Exists(customFfmpegPath),
+                customFfmpegPath,
+                [customFfmpegPath],
+                File.Exists(customFfmpegPath) ? "Custom path valid." : "Custom path not found.");
+        }
+        else
+        {
+            _lookupResult = ExternalToolLocator.Locate("ffmpeg.exe");
+            _ffmpegPath = _lookupResult.ExecutablePath;
+        }
     }
 
     public bool IsFfmpegAvailable => !string.IsNullOrEmpty(_ffmpegPath) && File.Exists(_ffmpegPath);
 
     public string? FfmpegPath => _ffmpegPath;
 
+    public ToolLookupResult LookupResult => _lookupResult;
+
     public static string? FindFfmpegBinary()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-
-        // 1. Check next to executable
-        var directPath = Path.Combine(baseDir, "ffmpeg.exe");
-        if (File.Exists(directPath)) return directPath;
-
-        // 2. Check libs folder
-        var libsDir = Path.Combine(baseDir, "..", "..", "..", "libs", "ffmpeg.exe");
-        if (File.Exists(libsDir)) return Path.GetFullPath(libsDir);
-
-        var libsFolder = Path.Combine(baseDir, "libs", "ffmpeg.exe");
-        if (File.Exists(libsFolder)) return libsFolder;
-
-        // 3. Check system PATH
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (!string.IsNullOrEmpty(pathEnv))
-        {
-            foreach (var part in pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var candidate = Path.Combine(part.Trim(), "ffmpeg.exe");
-                if (File.Exists(candidate)) return candidate;
-            }
-        }
-
-        return null;
+        return ExternalToolLocator.Locate("ffmpeg.exe").ExecutablePath;
     }
 
     public async Task TrimAsync(TrimOptions options, IProgress<TrimProgress>? progress = null, CancellationToken ct = default)

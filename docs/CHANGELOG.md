@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **External Tool Locator & Diagnostics Logging (Issue 6)**:
+  - Created centralized `ExternalToolLocator` in `NJPlayer.Core.Tools` searching next to the executable, the `libs/` folder, solution development paths, and system `PATH`.
+  - Detailed diagnostic logging via `LogService` recording every checked path and the exact failure reason when tools are missing.
+  - Added user-friendly **"How to fix"** buttons in `DownloaderWindow` and `TrimmerWindow` modal banners showing searched locations and step-by-step instructions on where to place `yt-dlp.exe` and `ffmpeg.exe`.
+  - Verified post-build copy target ensuring external native binaries in `libs/` are copied to the build output folder without downloading anything automatically.
 - **Comprehensive Vulnerability & Idle State Hardening**:
   - Guarded all mpv commands (`cycle pause`, `stop`, `cycle sub-visibility`, `cycle sub`, `sub-add`, `frame-step`, `frame-back-step`, `sub-delay`) against mpv error `-12` (`MPV_ERROR_COMMAND`) when the player is idle or no media is loaded.
   - Wrapped `MpvPlayer.Command`, `Play`, `Pause`, `SetVolume`, `SetSpeed`, `SetProperty*`, and `GetProperty*` in safe exception boundaries with diagnostic trace logging, preventing unhandled exceptions from triggering the crash dialog.

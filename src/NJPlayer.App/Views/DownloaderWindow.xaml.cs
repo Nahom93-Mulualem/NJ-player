@@ -52,6 +52,24 @@ public partial class DownloaderWindow : Window
         catch { }
     }
 
+    private void HowToFixYtDlp_Click(object sender, RoutedEventArgs e)
+    {
+        var result = _downloaderService.LookupResult;
+        var searchedList = string.Join("\n • ", result.SearchedPaths);
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var recommendedPath = System.IO.Path.Combine(baseDir, "libs", "yt-dlp.exe");
+
+        var msg = "yt-dlp was not found.\n\n" +
+                  "How to fix:\n" +
+                  "1. Download 'yt-dlp.exe' from github.com/yt-dlp/yt-dlp/releases\n" +
+                  $"2. Place 'yt-dlp.exe' into:\n   {recommendedPath}\n" +
+                  "   (or add it to your Windows system PATH)\n" +
+                  "3. Re-open this Downloader window.\n\n" +
+                  $"Searched locations ({result.SearchedPaths.Count}):\n • {searchedList}";
+
+        MessageBox.Show(this, msg, "How to Fix yt-dlp - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_downloaderService.IsYtDlpAvailable)

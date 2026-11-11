@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using NJPlayer.Core.Tools;
 
 namespace NJPlayer.Features.Downloader;
 
@@ -35,43 +36,36 @@ public sealed class MediaDownloaderService
         RegexOptions.Compiled);
 
     private readonly string? _ytdlpPath;
+    private readonly ToolLookupResult _lookupResult;
 
     public MediaDownloaderService(string? customYtDlpPath = null)
     {
-        _ytdlpPath = customYtDlpPath ?? FindYtDlpBinary();
+        if (!string.IsNullOrEmpty(customYtDlpPath))
+        {
+            _ytdlpPath = customYtDlpPath;
+            _lookupResult = new ToolLookupResult(
+                "yt-dlp.exe",
+                File.Exists(customYtDlpPath),
+                customYtDlpPath,
+                [customYtDlpPath],
+                File.Exists(customYtDlpPath) ? "Custom path valid." : "Custom path not found.");
+        }
+        else
+        {
+            _lookupResult = ExternalToolLocator.Locate("yt-dlp.exe");
+            _ytdlpPath = _lookupResult.ExecutablePath;
+        }
     }
 
     public bool IsYtDlpAvailable => !string.IsNullOrEmpty(_ytdlpPath) && File.Exists(_ytdlpPath);
 
     public string? YtDlpPath => _ytdlpPath;
 
+    public ToolLookupResult LookupResult => _lookupResult;
+
     public static string? FindYtDlpBinary()
     {
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-
-        // 1. Check next to executable
-        var directPath = Path.Combine(baseDir, "yt-dlp.exe");
-        if (File.Exists(directPath)) return directPath;
-
-        // 2. Check libs folder
-        var libsDir = Path.Combine(baseDir, "..", "..", "..", "libs", "yt-dlp.exe");
-        if (File.Exists(libsDir)) return Path.GetFullPath(libsDir);
-
-        var libsFolder = Path.Combine(baseDir, "libs", "yt-dlp.exe");
-        if (File.Exists(libsFolder)) return libsFolder;
-
-        // 3. Check system PATH
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (!string.IsNullOrEmpty(pathEnv))
-        {
-            foreach (var part in pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var candidate = Path.Combine(part.Trim(), "yt-dlp.exe");
-                if (File.Exists(candidate)) return candidate;
-            }
-        }
-
-        return null;
+        return ExternalToolLocator.Locate("yt-dlp.exe").ExecutablePath;
     }
 
     public async Task<string?> DownloadAsync(DownloadOptions options, IProgress<DownloadProgress>? progress = null, CancellationToken ct = default)

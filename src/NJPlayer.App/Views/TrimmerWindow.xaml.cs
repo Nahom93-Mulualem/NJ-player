@@ -57,6 +57,24 @@ public partial class TrimmerWindow : Window
         }
     }
 
+    private void HowToFixFfmpeg_Click(object sender, RoutedEventArgs e)
+    {
+        var result = _trimmerService.LookupResult;
+        var searchedList = string.Join("\n • ", result.SearchedPaths);
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var recommendedPath = System.IO.Path.Combine(baseDir, "libs", "ffmpeg.exe");
+
+        var msg = "ffmpeg was not found.\n\n" +
+                  "How to fix:\n" +
+                  "1. Download 'ffmpeg.exe' from ffmpeg.org or gyan.dev/ffmpeg/builds\n" +
+                  $"2. Place 'ffmpeg.exe' into:\n   {recommendedPath}\n" +
+                  "   (or add it to your Windows system PATH)\n" +
+                  "3. Re-open this Trimmer window.\n\n" +
+                  $"Searched locations ({result.SearchedPaths.Count}):\n • {searchedList}";
+
+        MessageBox.Show(this, msg, "How to Fix FFmpeg - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     public void SetInPoint(TimeSpan time)
     {
         InPointBox.Text = FormatTime(time);

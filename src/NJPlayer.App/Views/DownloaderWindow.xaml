@@ -44,7 +44,14 @@
 
                     <!-- Missing yt-dlp notice (hidden if available) -->
                     <Border x:Name="MissingYtDlpBanner" Background="#26FF5C6C" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="12,10" Margin="0,0,0,14" Visibility="Collapsed">
-                        <TextBlock Text="⚠️ yt-dlp.exe was not found. Please place yt-dlp.exe into the 'libs' folder or system PATH to enable downloads." Foreground="{StaticResource DangerBrush}" FontSize="12" TextWrapping="Wrap" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="⚠️ yt-dlp.exe was not found. Place yt-dlp.exe into the 'libs' folder or system PATH." Foreground="{StaticResource DangerBrush}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Padding="8,4" Background="Transparent" Foreground="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" Content="How to fix" Cursor="Hand" Click="HowToFixYtDlp_Click" VerticalAlignment="Center" />
+                        </Grid>
                     </Border>
 
                     <!-- URL Input Section -->
