@@ -83,7 +83,7 @@ public partial class SubtitlePickerWindow : Window
         var dialog = new OpenFileDialog
         {
             Title = "Select Subtitle File - NJ Player",
-            Filter = "Subtitle Files (*.srt;*.ass;*.ssa;*.vtt;*.sub)|*.srt;*.ass;*.ssa;*.vtt;*.sub|All Files (*.*)|*.*",
+            Filter = "All Supported Subtitles (*.srt;*.smi;*.sami;*.ass;*.ssa;*.vtt;*.sub;*.idx;*.sup)|*.srt;*.smi;*.sami;*.ass;*.ssa;*.vtt;*.sub;*.idx;*.sup|Text Subtitles (*.srt;*.smi;*.sami;*.vtt)|*.srt;*.smi;*.sami;*.vtt|ASS/SSA Animated Subtitles (*.ass;*.ssa)|*.ass;*.ssa|DVD/Blu-ray Subtitles (*.idx;*.sub;*.sup)|*.idx;*.sub;*.sup|All Files (*.*)|*.*",
             Multiselect = false
         };
 
@@ -99,13 +99,23 @@ public partial class SubtitlePickerWindow : Window
 
         try
         {
-            _player?.AddSubtitle(filePath, select: true);
-            SubtitleLoaded?.Invoke(Path.GetFileName(filePath));
+            var ext = Path.GetExtension(filePath).ToLowerInvariant();
+            var targetPath = filePath;
+
+            // If SAMI/SMI file has HTML Ruby tags, normalize for seamless rendering
+            if (ext is ".smi" or ".sami")
+            {
+                targetPath = SamiSubtitleProcessor.NormalizeSamiToUtf8(filePath);
+            }
+
+            _player?.AddSubtitle(targetPath, select: true);
+            var formatDesc = SubtitleService.GetSubtitleFormatDescription(filePath);
+            SubtitleLoaded?.Invoke($"{Path.GetFileName(filePath)} [{formatDesc}]");
 
             var item = new ComboBoxItem
             {
-                Content = $"External: {Path.GetFileName(filePath)}",
-                Tag = filePath,
+                Content = $"External: {Path.GetFileName(filePath)} ({formatDesc})",
+                Tag = targetPath,
                 IsSelected = true
             };
             TrackCombo.Items.Add(item);

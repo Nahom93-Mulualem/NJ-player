@@ -81,6 +81,57 @@ public class SubtitleTests : IDisposable
     }
 
     [Fact]
+    public void SubtitleService_FindsMatchingSubtitles_IncludingSmiVobSubAndSup()
+    {
+        var service = new SubtitleService();
+        var videoPath = Path.Combine(_testDir, "anime_episode.mp4");
+        File.WriteAllText(videoPath, "");
+
+        var smiSub = Path.Combine(_testDir, "anime_episode.smi");
+        var pgsSub = Path.Combine(_testDir, "anime_episode.sup");
+        var idxSub = Path.Combine(_testDir, "anime_episode.idx");
+        var assSub = Path.Combine(_testDir, "anime_episode.ass");
+
+        File.WriteAllText(smiSub, "");
+        File.WriteAllText(pgsSub, "");
+        File.WriteAllText(idxSub, "");
+        File.WriteAllText(assSub, "");
+
+        var matches = service.FindMatchingSubtitles(videoPath);
+
+        Assert.Contains(smiSub, matches);
+        Assert.Contains(pgsSub, matches);
+        Assert.Contains(idxSub, matches);
+        Assert.Contains(assSub, matches);
+    }
+
+    [Fact]
+    public void SamiProcessor_ProcessesRubyTagsCorrectly()
+    {
+        var rawSami = "<SYNC Start=1000><P Class=KRCC><ruby>漢字<rt>かんじ</rt></ruby> lesson";
+
+        Assert.True(SamiSubtitleProcessor.HasRubyTags(rawSami));
+
+        var withParentheses = SamiSubtitleProcessor.ProcessRubyTags(rawSami, RubyDisplayMode.Parentheses);
+        Assert.Contains("漢字(かんじ) lesson", withParentheses);
+
+        var baseOnly = SamiSubtitleProcessor.ProcessRubyTags(rawSami, RubyDisplayMode.BaseOnly);
+        Assert.Contains("漢字 lesson", baseOnly);
+    }
+
+    [Theory]
+    [InlineData("sample.smi", "SAMI (Ruby Tags & Sync Text)")]
+    [InlineData("sample.srt", "SubRip (SRT Text)")]
+    [InlineData("sample.ass", "ASS/SSA (Vector Animation & Styles)")]
+    [InlineData("sample.idx", "DVD VobSub (Bitmap Subtitles)")]
+    [InlineData("sample.sup", "Blu-ray PGS (Graphic Stream)")]
+    public void SubtitleService_GetSubtitleFormatDescription_ReturnsExpected(string filename, string expectedDesc)
+    {
+        var desc = SubtitleService.GetSubtitleFormatDescription(filename);
+        Assert.Equal(expectedDesc, desc);
+    }
+
+    [Fact]
     public void SubtitleService_DetectsUtf8_IncludingGeezAmharicText()
     {
         var geezFile = Path.Combine(_testDir, "amharic_sub.srt");

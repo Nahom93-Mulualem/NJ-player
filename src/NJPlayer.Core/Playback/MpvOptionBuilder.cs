@@ -71,6 +71,9 @@ public sealed class MpvOptionBuilder
         WithOption("sub-border-color", "#000000");
         WithOption("sub-shadow-offset", "1.5");
         WithOption("sub-shadow-color", "#000000");
+        WithOption("sub-ass", "yes");
+        WithOption("sub-ass-override", "scale");
+        WithOption("embeddedfonts", "yes");
         return this;
     }
 

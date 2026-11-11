@@ -14,7 +14,10 @@ namespace NJPlayer.Features.Subtitles;
 /// </summary>
 public sealed class SubtitleService
 {
-    private static readonly string[] SubtitleExtensions = [".srt", ".ass", ".ssa", ".vtt", ".sub"];
+    public static readonly string[] SubtitleExtensions =
+    [
+        ".srt", ".smi", ".sami", ".ass", ".ssa", ".vtt", ".sub", ".idx", ".sup", ".lrc"
+    ];
 
     public static readonly string DefaultGeezFont = "Nyala, Ebrima, Segoe UI, sans-serif";
 
@@ -25,6 +28,26 @@ public sealed class SubtitleService
     public SubtitleService(ISubtitleProvider? provider = null)
     {
         _provider = provider ?? new PodnapisiSubtitleProvider();
+    }
+
+    /// <summary>
+    /// Returns a human-friendly format badge or description for a given subtitle extension.
+    /// </summary>
+    public static string GetSubtitleFormatDescription(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return "Unknown";
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        return ext switch
+        {
+            ".smi" or ".sami" => "SAMI (Ruby Tags & Sync Text)",
+            ".srt" => "SubRip (SRT Text)",
+            ".ass" or ".ssa" => "ASS/SSA (Vector Animation & Styles)",
+            ".vtt" => "WebVTT (Web Video Text)",
+            ".idx" or ".sub" => "DVD VobSub (Bitmap Subtitles)",
+            ".sup" => "Blu-ray PGS (Graphic Stream)",
+            ".lrc" => "LRC (Synced Lyrics)",
+            _ => "Subtitle"
+        };
     }
 
     /// <summary>

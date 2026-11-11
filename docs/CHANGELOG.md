@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Advanced Subtitle Format Expansion & SAMI Ruby Tag Support**:
+  - Full support for SAMI/SMI (`.smi`, `.sami`), SubRip (`.srt`), WebVTT (`.vtt`), DVD VobSub (`.idx`/`.sub`), Blu-ray PGS (`.sup`), and ASS/SSA animated subtitles.
+  - Implemented `SamiSubtitleProcessor` with HTML/SMI Ruby pronunciation tag extraction (`<ruby>`, `<rt>`) into clean parenthesized or base text.
+  - Enabled full vector font rendering, embedded font styling, and scaling animation support (`sub-ass=yes`, `sub-ass-override=scale`, `embeddedfonts=yes`).
+  - Extended matching sidecar subtitle auto-discovery across all subtitle formats in media directories.
 - **"Watch Later" Video Queue System**:
   - Implemented `WatchLaterManager` in `NJPlayer.Core.Playlist` persisting the user's video queue to `%APPDATA%\NJPlayer\watch_later.json` across app sessions.
   - Added dual-tab navigation in `PlaylistDrawer`: toggle seamlessly between active session `📋 Playlist` and `⏱ Watch Later` queue.
