@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **"Watch Later" Video Queue System**:
+  - Implemented `WatchLaterManager` in `NJPlayer.Core.Playlist` persisting the user's video queue to `%APPDATA%\NJPlayer\watch_later.json` across app sessions.
+  - Added dual-tab navigation in `PlaylistDrawer`: toggle seamlessly between active session `📋 Playlist` and `⏱ Watch Later` queue.
+  - Added "Add to Watch Later" right-click context menu item on any playlist video.
+  - Direct drag-and-drop file/folder queuing, "+ Add Videos" file picker, queue clearing, and "▶ Play Queue" execution.
 - **External Tool Locator & Diagnostics Logging (Issue 6)**:
   - Created centralized `ExternalToolLocator` in `NJPlayer.Core.Tools` searching next to the executable, the `libs/` folder, solution development paths, and system `PATH`.
   - Detailed diagnostic logging via `LogService` recording every checked path and the exact failure reason when tools are missing.

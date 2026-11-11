@@ -20,35 +20,48 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <!-- 0: Header with Search & Close -->
+            <!-- 0: Header with Tabs & Close -->
             <RowDefinition Height="Auto" />
-            <!-- 1: Playlist Items List -->
+            <!-- 1: List Area (Playlist or Watch Later) -->
             <RowDefinition Height="*" />
-            <!-- 2: Footer with Shuffle, Repeat, M3U -->
+            <!-- 2: Footer Toolbar -->
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- TOP BAR: Title, Search, Close -->
-        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,12,12,12">
+        <!-- TOP BAR: Tab Navigation & Close -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,12,12,10">
             <StackPanel>
-                <Grid Margin="0,0,0,10">
-                    <TextBlock Text="📋 Playlist" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                    <Button HorizontalAlignment="Right" Style="{StaticResource CaptionButtonStyle}" Width="28" Height="28" ToolTip="Close Playlist (Ctrl+L)" Click="CloseButton_Click">
+                <Grid Margin="0,0,0,8">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="PlaylistTabBtn" Padding="8,4" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="0,0,0,2" FontSize="12" FontWeight="SemiBold" Cursor="Hand" Click="PlaylistTab_Click" Content="📋 Playlist" Margin="0,0,6,0" />
+                        <Button x:Name="WatchLaterTabBtn" Padding="8,4" Background="Transparent" Foreground="{StaticResource TextMutedBrush}" BorderBrush="Transparent" BorderThickness="0,0,0,2" FontSize="12" FontWeight="SemiBold" Cursor="Hand" Click="WatchLaterTab_Click" Content="⏱ Watch Later" />
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" Style="{StaticResource CaptionButtonStyle}" Width="28" Height="28" ToolTip="Close Drawer (Ctrl+L)" Click="CloseButton_Click">
                         <TextBlock Text="✕" FontSize="11" />
                     </Button>
                 </Grid>
 
-                <!-- Search Input Box -->
-                <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,4">
+                <!-- Search Input Box (Playlist View) -->
+                <Border x:Name="SearchBorder" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,4">
                     <Grid>
                         <TextBlock x:Name="SearchPlaceholder" Text="🔍 Search playlist..." FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" IsHitTestVisible="False" />
                         <TextBox x:Name="SearchBox" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" FontSize="12" VerticalAlignment="Center" TextChanged="SearchBox_TextChanged" />
                     </Grid>
                 </Border>
+
+                <!-- Watch Later Action Bar -->
+                <Grid x:Name="WatchLaterActionBar" Visibility="Collapsed" Margin="0,2,0,0">
+                    <Button HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="10,0" Click="AddWatchLater_Click" ToolTip="Add video files to Watch Later queue">
+                        <TextBlock Text="+ Add Videos" FontSize="11" />
+                    </Button>
+                    <Button HorizontalAlignment="Right" Style="{StaticResource CaptionButtonStyle}" Height="28" Padding="8,0" Click="ClearWatchLater_Click" ToolTip="Clear Watch Later queue">
+                        <TextBlock Text="Clear All" FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
+                    </Button>
+                </Grid>
             </StackPanel>
         </Border>
 
-        <!-- PLAYLIST ITEMS (44px rows, drop reordering, accent bar for current) -->
+        <!-- CONTENT AREA: Active Playlist ListBox -->
         <ListBox Grid.Row="1" x:Name="PlaylistListBox"
                  Background="Transparent"
                  BorderThickness="0"
@@ -90,13 +103,9 @@
                 <DataTemplate>
                     <Grid Height="44">
                         <Grid.ColumnDefinitions>
-                            <!-- Column 0: 3px Cyan Accent Active Bar -->
                             <ColumnDefinition Width="4" />
-                            <!-- Column 1: Icon / Thumbnail badge -->
                             <ColumnDefinition Width="32" />
-                            <!-- Column 2: Title and path -->
                             <ColumnDefinition Width="*" />
-                            <!-- Column 3: Duration -->
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
@@ -121,44 +130,131 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
 
-            <!-- Right-click Context Menu per DESIGN.md section 5 -->
+            <!-- Right-click Context Menu -->
             <ListBox.ContextMenu>
                 <ContextMenu Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                     <MenuItem Header="▶ Play" Click="MenuPlay_Click" />
-                    <MenuItem Header="❌ Remove from Playlist" Click="MenuRemove_Click" />
+                    <MenuItem Header="⏱ Add to Watch Later" Click="MenuAddToWatchLater_Click" />
                     <Separator Background="{StaticResource BorderBrush}" />
+                    <MenuItem Header="❌ Remove from Playlist" Click="MenuRemove_Click" />
                     <MenuItem Header="📁 Show in Folder" Click="MenuShowInFolder_Click" />
                     <MenuItem Header="ℹ Properties" Click="MenuProperties_Click" />
                 </ContextMenu>
             </ListBox.ContextMenu>
         </ListBox>
 
-        <!-- FOOTER: Shuffle, Repeat, M3U buttons, item counter -->
+        <!-- CONTENT AREA: Watch Later Queue ListBox -->
+        <ListBox Grid.Row="1" x:Name="WatchLaterListBox"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Visibility="Collapsed"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 SelectionMode="Single"
+                 MouseDoubleClick="WatchLaterListBox_MouseDoubleClick">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Height" Value="44" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="RowBorder" Background="{TemplateBinding Background}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" SnapsToDevicePixels="True">
+                                    <ContentPresenter />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="RowBorder" Property="Background" Value="#26252E39" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="RowBorder" Property="Background" Value="#3300E5FF" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Height="44">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="4" />
+                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Unwatched / Queued marker -->
+                        <Border Grid.Column="0" Background="{StaticResource AccentBrush}" Width="3" HorizontalAlignment="Left" />
+
+                        <!-- Queue Icon -->
+                        <TextBlock Grid.Column="1" Text="⏱" FontSize="12" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                        <!-- Title and Added Date -->
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,8,0">
+                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextBrush}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding FormattedAddedDate, StringFormat='Added {0}'}" Foreground="{StaticResource TextMutedBrush}" FontSize="10" />
+                        </StackPanel>
+
+                        <!-- Duration -->
+                        <TextBlock Grid.Column="3" Text="{Binding FormattedDuration}" FontFamily="{StaticResource TimeFont}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+
+            <ListBox.ContextMenu>
+                <ContextMenu Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <MenuItem Header="▶ Play Now" Click="MenuWatchLaterPlay_Click" />
+                    <MenuItem Header="❌ Remove from Watch Later" Click="MenuWatchLaterRemove_Click" />
+                    <Separator Background="{StaticResource BorderBrush}" />
+                    <MenuItem Header="📁 Show in Folder" Click="MenuWatchLaterShowInFolder_Click" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
+        </ListBox>
+
+        <!-- FOOTER: Playlist Controls or Watch Later Actions -->
         <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,10" Background="{StaticResource Surface85Brush}">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                <!-- Playlist Toolbar -->
+                <Grid x:Name="PlaylistFooter">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- Shuffle Toggle -->
-                <Button x:Name="ShuffleButton" Style="{StaticResource IconButton}" ToolTip="Toggle Shuffle" Click="ShuffleButton_Click">
-                    <TextBlock x:Name="ShuffleIcon" Text="🔀" FontSize="13" />
-                </Button>
-
-                <!-- Repeat Toggle -->
-                <Button Grid.Column="1" x:Name="RepeatButton" Style="{StaticResource IconButton}" ToolTip="Toggle Repeat (Off / All / One)" Click="RepeatButton_Click" Margin="4,0,0,0">
-                    <TextBlock x:Name="RepeatIcon" Text="🔁" FontSize="13" />
-                </Button>
-
-                <!-- M3U Actions -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource IconButton}" Width="42" ToolTip="Save or Load M3U Playlist" Click="M3uMenu_Click">
-                        <TextBlock Text="M3U" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" />
+                    <Button x:Name="ShuffleButton" Style="{StaticResource IconButton}" ToolTip="Toggle Shuffle" Click="ShuffleButton_Click">
+                        <TextBlock x:Name="ShuffleIcon" Text="🔀" FontSize="13" />
                     </Button>
-                </StackPanel>
+
+                    <Button Grid.Column="1" x:Name="RepeatButton" Style="{StaticResource IconButton}" ToolTip="Toggle Repeat (Off / All / One)" Click="RepeatButton_Click" Margin="4,0,0,0">
+                        <TextBlock x:Name="RepeatIcon" Text="🔁" FontSize="13" />
+                    </Button>
+
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconButton}" Width="42" ToolTip="Save or Load M3U Playlist" Click="M3uMenu_Click">
+                            <TextBlock Text="M3U" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Watch Later Toolbar -->
+                <Grid x:Name="WatchLaterFooter" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="WatchLaterCountText" Text="0 items queued" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Height="28" Padding="12,0" Click="PlayWatchLaterQueue_Click">
+                        <TextBlock Text="▶ Play Queue" FontSize="11" />
+                    </Button>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

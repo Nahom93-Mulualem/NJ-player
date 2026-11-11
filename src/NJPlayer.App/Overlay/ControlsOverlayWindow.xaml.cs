@@ -502,6 +502,15 @@ public partial class ControlsOverlayWindow : Window
         };
     }
 
+    public void AttachWatchLater(NJPlayer.Core.Playlist.WatchLaterManager watchLaterManager)
+    {
+        Drawer.AttachWatchLater(watchLaterManager);
+        Drawer.MediaPathRequested += path =>
+        {
+            _mainWindow.LoadMediaFile(path);
+        };
+    }
+
     public void TogglePlaylist()
     {
         Drawer.ToggleDrawer();

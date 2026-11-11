@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private ControlsOverlayWindow? _overlay;
     private readonly NJPlayer.Core.Hotkeys.HotkeyManager _hotkeyManager = new();
     private readonly NJPlayer.Core.Playlist.PlaylistManager _playlistManager = new();
+    private readonly NJPlayer.Core.Playlist.WatchLaterManager _watchLaterManager = new();
     private readonly SettingsManager _settingsManager = new();
     private readonly NJPlayer.Features.Subtitles.SubtitleService _subtitleService = new();
     private readonly NJPlayer.Features.Trimmer.MediaTrimmerService _trimmerService = new();
@@ -235,6 +236,17 @@ public partial class MainWindow : Window
 
         _overlay.AttachPlaylist(_playlistManager);
         _playlistManager.CurrentItemChanged += PlaylistManager_CurrentItemChanged;
+
+        try
+        {
+            _watchLaterManager.LoadFromJson();
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Could not load watch_later.json: {ex.Message}");
+        }
+
+        _overlay.AttachWatchLater(_watchLaterManager);
 
         _overlay.Show();
         _overlay.SyncWithMainWindow();

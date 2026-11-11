@@ -17,7 +17,9 @@ namespace NJPlayer.App.Views;
 public partial class PlaylistDrawer : UserControl
 {
     private PlaylistManager? _manager;
+    private WatchLaterManager? _watchLaterManager;
     private bool _isOpen = false;
+    private bool _isWatchLaterTab = false;
     private ICollectionView? _filteredView;
     private Point _dragStartPoint;
     private PlaylistItem? _draggedItem;
@@ -27,6 +29,7 @@ public partial class PlaylistDrawer : UserControl
 
     public bool IsOpen => _isOpen;
     public event EventHandler<PlaylistItem>? ItemSelected;
+    public event Action<string>? MediaPathRequested;
 
     public PlaylistDrawer()
     {
@@ -50,6 +53,14 @@ public partial class PlaylistDrawer : UserControl
 
         UpdateStateVisuals();
         UpdateActiveItemVisuals();
+    }
+
+    public void AttachWatchLater(WatchLaterManager watchLaterManager)
+    {
+        _watchLaterManager = watchLaterManager ?? throw new ArgumentNullException(nameof(watchLaterManager));
+        WatchLaterListBox.ItemsSource = _watchLaterManager.Items;
+        _watchLaterManager.QueueChanged += (_, _) => UpdateWatchLaterCount();
+        UpdateWatchLaterCount();
     }
 
     public void ToggleDrawer()
@@ -81,6 +92,57 @@ public partial class PlaylistDrawer : UserControl
             if (!_isOpen) Visibility = Visibility.Collapsed;
         };
         DrawerTransform.BeginAnimation(TranslateTransform.XProperty, anim);
+    }
+
+    // --- Tab Switching ---
+
+    private void PlaylistTab_Click(object sender, RoutedEventArgs e)
+    {
+        _isWatchLaterTab = false;
+        PlaylistTabBtn.Background = (Brush)FindResource("SurfaceRaisedBrush");
+        PlaylistTabBtn.Foreground = (Brush)FindResource("AccentBrush");
+        PlaylistTabBtn.BorderBrush = (Brush)FindResource("AccentBrush");
+
+        WatchLaterTabBtn.Background = Brushes.Transparent;
+        WatchLaterTabBtn.Foreground = (Brush)FindResource("TextMutedBrush");
+        WatchLaterTabBtn.BorderBrush = Brushes.Transparent;
+
+        SearchBorder.Visibility = Visibility.Visible;
+        WatchLaterActionBar.Visibility = Visibility.Collapsed;
+
+        PlaylistListBox.Visibility = Visibility.Visible;
+        WatchLaterListBox.Visibility = Visibility.Collapsed;
+
+        PlaylistFooter.Visibility = Visibility.Visible;
+        WatchLaterFooter.Visibility = Visibility.Collapsed;
+    }
+
+    private void WatchLaterTab_Click(object sender, RoutedEventArgs e)
+    {
+        _isWatchLaterTab = true;
+        WatchLaterTabBtn.Background = (Brush)FindResource("SurfaceRaisedBrush");
+        WatchLaterTabBtn.Foreground = (Brush)FindResource("AccentBrush");
+        WatchLaterTabBtn.BorderBrush = (Brush)FindResource("AccentBrush");
+
+        PlaylistTabBtn.Background = Brushes.Transparent;
+        PlaylistTabBtn.Foreground = (Brush)FindResource("TextMutedBrush");
+        PlaylistTabBtn.BorderBrush = Brushes.Transparent;
+
+        SearchBorder.Visibility = Visibility.Collapsed;
+        WatchLaterActionBar.Visibility = Visibility.Visible;
+
+        PlaylistListBox.Visibility = Visibility.Collapsed;
+        WatchLaterListBox.Visibility = Visibility.Visible;
+
+        PlaylistFooter.Visibility = Visibility.Collapsed;
+        WatchLaterFooter.Visibility = Visibility.Visible;
+        UpdateWatchLaterCount();
+    }
+
+    private void UpdateWatchLaterCount()
+    {
+        var count = _watchLaterManager?.Items.Count ?? 0;
+        WatchLaterCountText.Text = count == 1 ? "1 video queued" : $"{count} videos queued";
     }
 
     private void UpdateStateVisuals()
@@ -119,12 +181,13 @@ public partial class PlaylistDrawer : UserControl
 
     private bool FilterItem(object obj)
     {
-        if (obj is not PlaylistItem item) return false;
-        var query = SearchBox.Text?.Trim();
-        if (string.IsNullOrEmpty(query)) return true;
-
-        return item.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               item.FilePath.Contains(query, StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(SearchBox.Text)) return true;
+        if (obj is PlaylistItem item)
+        {
+            return item.Title.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase) ||
+                   item.FilePath.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -151,7 +214,94 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
-    // --- Drag and Drop (External Files / Folders & Reordering) ---
+    // --- Watch Later Actions ---
+
+    private void AddWatchLater_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select Videos to Add to Watch Later - NJ Player",
+            Filter = "Media Files|*.mp4;*.mkv;*.avi;*.mov;*.webm;*.flv;*.wmv;*.ts;*.m4v;*.mp3;*.flac;*.wav;*.m4a;*.opus;*.ogg|All Files (*.*)|*.*",
+            Multiselect = true
+        };
+
+        if (dialog.ShowDialog() == true && _watchLaterManager != null)
+        {
+            int added = 0;
+            foreach (var file in dialog.FileNames)
+            {
+                if (_watchLaterManager.Add(file)) added++;
+            }
+        }
+    }
+
+    private void ClearWatchLater_Click(object sender, RoutedEventArgs e)
+    {
+        if (_watchLaterManager != null && _watchLaterManager.Items.Count > 0)
+        {
+            var res = MessageBox.Show("Clear all videos from Watch Later queue?", "Watch Later - NJ Player", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (res == MessageBoxResult.Yes)
+            {
+                _watchLaterManager.Clear();
+            }
+        }
+    }
+
+    private void PlayWatchLaterQueue_Click(object sender, RoutedEventArgs e)
+    {
+        if (_watchLaterManager == null || _watchLaterManager.Items.Count == 0) return;
+
+        // Take the first queue item to play
+        var first = _watchLaterManager.Items[0];
+        MediaPathRequested?.Invoke(first.FilePath);
+    }
+
+    private void WatchLaterListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (WatchLaterListBox.SelectedItem is WatchLaterItem item)
+        {
+            MediaPathRequested?.Invoke(item.FilePath);
+        }
+    }
+
+    private void MenuWatchLaterPlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (WatchLaterListBox.SelectedItem is WatchLaterItem item)
+        {
+            MediaPathRequested?.Invoke(item.FilePath);
+        }
+    }
+
+    private void MenuWatchLaterRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (WatchLaterListBox.SelectedItem is WatchLaterItem item && _watchLaterManager != null)
+        {
+            _watchLaterManager.Remove(item);
+        }
+    }
+
+    private void MenuWatchLaterShowInFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (WatchLaterListBox.SelectedItem is WatchLaterItem item && File.Exists(item.FilePath))
+        {
+            try
+            {
+                Process.Start("explorer.exe", $"/select,\"{item.FilePath}\"");
+            }
+            catch { }
+        }
+    }
+
+    private void MenuAddToWatchLater_Click(object sender, RoutedEventArgs e)
+    {
+        if (PlaylistListBox.SelectedItem is PlaylistItem item && _watchLaterManager != null)
+        {
+            _watchLaterManager.Add(item.FilePath, item.Title, item.Duration.TotalSeconds);
+            MessageBox.Show($"Added '{item.Title}' to Watch Later.", "Watch Later - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    // --- Drag and Drop ---
 
     private void Drawer_DragOver(object sender, DragEventArgs e)
     {
@@ -164,24 +314,41 @@ public partial class PlaylistDrawer : UserControl
 
     private void Drawer_Drop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop) && _manager != null)
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var entries = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (entries != null)
             {
-                foreach (var entry in entries)
+                if (_isWatchLaterTab && _watchLaterManager != null)
                 {
-                    if (Directory.Exists(entry))
+                    foreach (var entry in entries)
                     {
-                        _manager.AddFolder(entry, recursive: true);
+                        if (Directory.Exists(entry))
+                        {
+                            _watchLaterManager.AddFolder(entry, recursive: true);
+                        }
+                        else if (File.Exists(entry))
+                        {
+                            _watchLaterManager.Add(entry);
+                        }
                     }
-                    else if (NJPlayer.Core.Playlist.PlaylistManager.IsPlaylistFile(entry))
+                }
+                else if (_manager != null)
+                {
+                    foreach (var entry in entries)
                     {
-                        _manager.LoadM3u(entry);
-                    }
-                    else if (File.Exists(entry))
-                    {
-                        _manager.AddFile(entry);
+                        if (Directory.Exists(entry))
+                        {
+                            _manager.AddFolder(entry, recursive: true);
+                        }
+                        else if (NJPlayer.Core.Playlist.PlaylistManager.IsPlaylistFile(entry))
+                        {
+                            _manager.LoadM3u(entry);
+                        }
+                        else if (File.Exists(entry))
+                        {
+                            _manager.AddFile(entry);
+                        }
                     }
                 }
             }
@@ -251,6 +418,7 @@ public partial class PlaylistDrawer : UserControl
         {
             RepeatMode.None => RepeatMode.RepeatAll,
             RepeatMode.RepeatAll => RepeatMode.RepeatOne,
+            RepeatMode.RepeatOne => RepeatMode.None,
             _ => RepeatMode.None
         };
     }
@@ -259,28 +427,58 @@ public partial class PlaylistDrawer : UserControl
     {
         if (_manager == null) return;
 
-        var menu = new ContextMenu();
-        var importItem = new MenuItem { Header = "📂 Load M3U / M3U8 Playlist..." };
-        importItem.Click += (_, _) =>
+        var cm = new ContextMenu
         {
-            var dlg = new OpenFileDialog { Filter = "M3U/M3U8 Playlists|*.m3u;*.m3u8|All Files (*.*)|*.*" };
-            if (dlg.ShowDialog() == true) _manager.LoadM3u(dlg.FileName);
+            Background = (Brush)FindResource("SurfaceRaisedBrush"),
+            BorderBrush = (Brush)FindResource("BorderBrush"),
+            BorderThickness = new Thickness(1)
         };
 
-        var exportItem = new MenuItem { Header = "💾 Save M3U / M3U8 Playlist..." };
-        exportItem.Click += (_, _) =>
+        var saveItem = new MenuItem { Header = "💾 Save Playlist as M3U..." };
+        saveItem.Click += (_, _) =>
         {
-            var dlg = new SaveFileDialog
+            var sfd = new SaveFileDialog
             {
+                Title = "Save Playlist - NJ Player",
                 Filter = "M3U8 Playlist (*.m3u8)|*.m3u8|M3U Playlist (*.m3u)|*.m3u",
-                DefaultExt = ".m3u8"
+                DefaultExt = ".m3u8",
+                FileName = "playlist.m3u8"
             };
-            if (dlg.ShowDialog() == true) _manager.SaveM3u(dlg.FileName);
+
+            if (sfd.ShowDialog() == true)
+            {
+                try
+                {
+                    _manager.SaveM3u(sfd.FileName);
+                    MessageBox.Show("Playlist exported successfully.", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not save playlist: {ex.Message}", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         };
 
-        menu.Items.Add(importItem);
-        menu.Items.Add(exportItem);
-        menu.IsOpen = true;
+        var loadItem = new MenuItem { Header = "📂 Load M3U Playlist..." };
+        loadItem.Click += (_, _) =>
+        {
+            var ofd = new OpenFileDialog
+            {
+                Title = "Open M3U Playlist - NJ Player",
+                Filter = "M3U Playlists (*.m3u;*.m3u8)|*.m3u;*.m3u8|All Files (*.*)|*.*",
+                Multiselect = false
+            };
+
+            if (ofd.ShowDialog() == true)
+            {
+                var added = _manager.LoadM3u(ofd.FileName);
+                MessageBox.Show($"Loaded {added} tracks from playlist.", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        };
+
+        cm.Items.Add(saveItem);
+        cm.Items.Add(loadItem);
+        cm.IsOpen = true;
     }
 
     // --- Context Menu Actions ---

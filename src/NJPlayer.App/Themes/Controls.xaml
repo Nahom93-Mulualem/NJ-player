@@ -112,6 +112,8 @@
         </Setter>
     </Style>
 
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButton}" />
+
     <!-- Secondary Button (surface-raised, 1px border, text label per DESIGN.md section 7) -->
     <Style x:Key="SecondaryButtonStyle" TargetType="Button">
         <Setter Property="Height" Value="30" />
