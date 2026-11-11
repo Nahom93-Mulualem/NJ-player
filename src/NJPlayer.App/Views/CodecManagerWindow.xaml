@@ -1,0 +1,160 @@
+<Window x:Class="NJPlayer.App.Views.CodecManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Codec Management &amp; Inspector - NJ Player"
+        Height="620" Width="640"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False">
+
+    <Border Background="{StaticResource SurfaceRaisedBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource RadiusLg}"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="32" ShadowDepth="12" Opacity="0.45" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Title Bar -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12,12,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0,8,0">
+                    <TextBlock Text="🎞 Codec Management &amp; Inspector" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                    <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click">
+                        <TextBlock Text="✕" FontSize="11" />
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Main Content Area -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="20,16">
+
+                    <!-- Active Playback Codec Metrics -->
+                    <TextBlock Text="CURRENT MEDIA STREAM DECODER" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Video Decoder:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,3" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="VideoDecoderText" Text="HEVC (d3d11va Direct3D 11)" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="12" Margin="0,3" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Format &amp; Resolution:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,3" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ResolutionText" Text="3840x2160 @ 60.00 fps (10-bit)" Foreground="{StaticResource TextBrush}" FontSize="12" Margin="0,3" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio Stream:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,3" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="AudioDecoderText" Text="FLAC 24-bit / 48000 Hz (6 channels)" Foreground="{StaticResource TextBrush}" FontSize="12" Margin="0,3" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Container &amp; Bitrate:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,3" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ContainerText" Text="Matroska (MKV) / 18.5 Mbps" Foreground="{StaticResource TextBrush}" FontSize="12" Margin="0,3" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Built-in Codecs Notice (No Codec Packs Needed) -->
+                    <TextBlock Text="INTEGRATED CODEC ENGINE (ZERO INSTALLATION)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="NJ Player includes full self-contained decoders via libmpv/FFmpeg. External codec packs (K-Lite, Shark007, LAV Filters) are completely unnecessary." Foreground="{StaticResource TextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <WrapPanel Margin="0,4,0,0">
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ H.264 / AVC" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ H.265 / HEVC" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ AV1" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ VP9 / VP8" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ MPEG-2 / VC-1" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ Apple ProRes" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ AAC / MP3" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ AC3 / E-AC3" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ DTS / DTS-HD" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ TrueHD" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ FLAC / ALAC" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ Opus / Vorbis" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- OpenCodec Modular Priority & Custom Decoder Options -->
+                    <TextBlock Text="OPENCODEC &amp; MODULAR DECODER PREFERENCES" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,8" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <!-- Hardware Decoder API -->
+                            <TextBlock Text="Hardware Acceleration (GPU):" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,4" />
+                            <ComboBox x:Name="HwdecCombo" Height="30" Margin="0,0,0,12" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}">
+                                <ComboBoxItem Content="auto-safe (Direct3D 11 / NVDEC Recommended)" Tag="auto-safe" IsSelected="True" />
+                                <ComboBoxItem Content="d3d11va (Direct3D 11 Hardware Decoding)" Tag="d3d11va" />
+                                <ComboBoxItem Content="nvdec (NVIDIA PureVideo / CUDA)" Tag="nvdec" />
+                                <ComboBoxItem Content="qsv (Intel QuickSync Video)" Tag="qsv" />
+                                <ComboBoxItem Content="vulkan (Vulkan Video Decode API)" Tag="vulkan" />
+                                <ComboBoxItem Content="no (Software Decoding Only)" Tag="no" />
+                            </ComboBox>
+
+                            <!-- OpenCodec Video Decoder Priority -->
+                            <TextBlock Text="OpenCodec Video Decoder Priority (vd):" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,4" />
+                            <TextBox x:Name="VideoDecoderPriorityBox" Height="30" Padding="8,4" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" VerticalContentAlignment="Center" Margin="0,0,0,12" />
+
+                            <!-- OpenCodec Audio Decoder Priority -->
+                            <TextBlock Text="OpenCodec Audio Decoder Priority (ad):" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,4" />
+                            <TextBox x:Name="AudioDecoderPriorityBox" Height="30" Padding="8,4" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" VerticalContentAlignment="Center" Margin="0,0,0,12" />
+
+                            <!-- Custom Lavc Options -->
+                            <TextBlock Text="Custom Lavc / Decoder Options:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,4" />
+                            <TextBox x:Name="CustomLavcBox" Height="30" Padding="8,4" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}" VerticalContentAlignment="Center" ToolTip="Options passed directly to libavcodec (e.g. threads=auto)" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Bottom Button Bar -->
+            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource CaptionButtonStyle}" Content="Close" Width="72" Height="32" Click="Close_Click" Margin="0,0,8,0" />
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Content="Save &amp; Apply" Height="32" Padding="16,0" Click="Save_Click" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -311,6 +311,16 @@ public partial class MainWindow : Window
             {
                 options.WithWindowHandle(PlayerHost.Hwnd);
                 options.WithHardwareDecoding(string.IsNullOrWhiteSpace(hwdec) ? "auto-safe" : hwdec);
+                if (!string.IsNullOrWhiteSpace(_settingsManager.Settings.VideoDecoderPriority) &&
+                    !string.Equals(_settingsManager.Settings.VideoDecoderPriority, "auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    options.WithOption("vd", _settingsManager.Settings.VideoDecoderPriority);
+                }
+                if (!string.IsNullOrWhiteSpace(_settingsManager.Settings.AudioDecoderPriority) &&
+                    !string.Equals(_settingsManager.Settings.AudioDecoderPriority, "auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    options.WithOption("ad", _settingsManager.Settings.AudioDecoderPriority);
+                }
                 options.WithSubtitleDefaults();
                 options.WithKeepOpen(true);
                 options.WithIdle(true);
@@ -708,6 +718,18 @@ public partial class MainWindow : Window
         if (win.ShowDialog() == true)
         {
             _overlay?.ShowToast("Settings Saved", "⚙");
+        }
+    }
+
+    public void OpenCodecManager()
+    {
+        var win = new Views.CodecManagerWindow(_player, _settingsManager)
+        {
+            Owner = this
+        };
+        if (win.ShowDialog() == true)
+        {
+            _overlay?.ShowToast("Codec Settings Saved", "🎞");
         }
     }
 
@@ -1279,12 +1301,7 @@ public partial class MainWindow : Window
                     break;
 
                 case NJPlayer.Core.Hotkeys.CommandId.MediaInfo:
-                    if (isMediaLoaded)
-                    {
-                        var title = Path.GetFileName(_currentFilePath) ?? "Media";
-                        var hwdec = _player?.HardwareDecoder ?? "Software";
-                        _overlay?.ShowToast($"{title} ({hwdec})", "ℹ");
-                    }
+                    OpenCodecManager();
                     break;
 
                 case >= NJPlayer.Core.Hotkeys.CommandId.JumpTo0Percent and <= NJPlayer.Core.Hotkeys.CommandId.JumpTo90Percent:

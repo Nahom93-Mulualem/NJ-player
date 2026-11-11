@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Codec Management, Live Media Inspector & OpenCodec Preferences**:
+  - Built-in zero-install codec engine leveraging libmpv/FFmpeg (H.264, HEVC, AV1, VP9, MPEG-2, VC-1, ProRes, AAC, AC3, EAC3, DTS, TrueHD, FLAC, Opus, ALAC).
+  - Added dedicated `CodecManagerWindow` accessible via <kbd>I</kbd> (Media Info) showing real-time active video/audio decoders, resolution, frame rate, pixel format bit depth, audio channels, and container bitrate.
+  - Added modular OpenCodec configuration in Settings and Codec Manager for specifying custom video (`vd`) and audio (`ad`) decoder priority chains and custom `lavc` decoding options.
 - **Advanced Subtitle Format Expansion & SAMI Ruby Tag Support**:
   - Full support for SAMI/SMI (`.smi`, `.sami`), SubRip (`.srt`), WebVTT (`.vtt`), DVD VobSub (`.idx`/`.sub`), Blu-ray PGS (`.sup`), and ASS/SSA animated subtitles.
   - Implemented `SamiSubtitleProcessor` with HTML/SMI Ruby pronunciation tag extraction (`<ruby>`, `<rt>`) into clean parenthesized or base text.
