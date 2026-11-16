@@ -35,6 +35,68 @@
             <!-- Native Win32 child window hosting mpv video surface -->
             <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" />
 
+            <!-- Dedicated MP3 / Music Player Hero Surface -->
+            <Border x:Name="MusicHeroSurface" Background="{StaticResource BgBrush}" Visibility="Collapsed">
+                <Grid Margin="32">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="820">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Album Art Container with soft drop shadow and cyan ambient glow -->
+                        <Border Grid.Column="0" Width="260" Height="260" CornerRadius="{StaticResource RadiusLg}"
+                                Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1" SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#00E5FF" BlurRadius="28" Opacity="0.18" ShadowDepth="4" Direction="270" />
+                            </Border.Effect>
+                            <Grid ClipToBounds="True">
+                                <!-- Fallback Vinyl / Audio Note Icon -->
+                                <StackPanel x:Name="AlbumArtPlaceholder" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="🎵" FontSize="54" HorizontalAlignment="Center" Foreground="{StaticResource AccentBrush}" Opacity="0.8" />
+                                    <TextBlock Text="AUDIO" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                                </StackPanel>
+
+                                <!-- Extracted or Sidecar Album Art Image -->
+                                <Image x:Name="AlbumArtImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Track Metadata & Lyrics Column -->
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" MaxWidth="480">
+                            <!-- Quality & Codec Badges -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,8,0">
+                                    <TextBlock x:Name="MusicQualityBadgeText" Text="AUDIO" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                                </Border>
+                                <Button x:Name="ToggleMusicVisualizerBtn" Content="📊 Visualizer" Style="{StaticResource SecondaryButtonStyle}" Height="24" Padding="8,0" FontSize="11" Click="ToggleMusicVisualizer_Click" />
+                            </StackPanel>
+
+                            <!-- Song Title -->
+                            <TextBlock x:Name="MusicTitleText" Text="Track Title" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,6" />
+
+                            <!-- Artist & Album -->
+                            <TextBlock x:Name="MusicArtistAlbumText" Text="Artist — Album" FontSize="14" Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,18" />
+
+                            <!-- 3-Line Synchronized Lyrics Surface -->
+                            <Border x:Name="LyricsContainer" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="16,12" MinHeight="96">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock x:Name="LyricPrevText" Text="" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Opacity="0.45" TextTrimming="CharacterEllipsis" Margin="0,0,0,4" />
+                                    <TextBlock x:Name="LyricCurrentText" Text="♪ Music playing" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                                    <TextBlock x:Name="LyricNextText" Text="" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Opacity="0.45" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
             <!-- Empty State Placeholder (Visible when no video is playing) -->
             <Border x:Name="EmptyStateOverlay" Background="{StaticResource BgBrush}" Visibility="Visible">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

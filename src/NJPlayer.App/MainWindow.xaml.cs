@@ -27,6 +27,10 @@ public partial class MainWindow : Window
     private readonly NJPlayer.Features.Trimmer.MediaTrimmerService _trimmerService = new();
     private readonly NJPlayer.Features.Downloader.MediaDownloaderService _downloaderService = new();
     private NJPlayer.Features.Audio.IAudioSuite? _audioSuite;
+    private readonly NJPlayer.Features.Audio.AudioMetadataService _audioMetadataService = new();
+    private NJPlayer.Features.Subtitles.LrcDocument? _currentLyrics;
+    private bool _isAudioMode = false;
+    private bool _musicVisualizerActive = false;
     private Views.AudioPanelWindow? _audioPanel;
     private Views.SubtitlePickerWindow? _subtitlePicker;
     private Views.TrimmerWindow? _trimmerWindow;
@@ -357,6 +361,19 @@ public partial class MainWindow : Window
                 _overlay?.ShowToast($"Resumed at {TimeSpan.FromSeconds(target):mm\\:ss}", "⏱");
             });
         }
+
+        if (_isAudioMode && _currentLyrics != null)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                var (prev, current, next) = _currentLyrics.GetActiveLyrics(pos);
+                LyricPrevText.Text = prev ?? string.Empty;
+                LyricCurrentText.Text = string.IsNullOrEmpty(current)
+                    ? (string.IsNullOrEmpty(prev) ? "♪ Music playing" : string.Empty)
+                    : current;
+                LyricNextText.Text = next ?? string.Empty;
+            });
+        }
     }
 
     public void LoadMediaFile(string filePath)
@@ -399,9 +416,37 @@ public partial class MainWindow : Window
         }
 
         var fileName = Path.GetFileName(filePath);
-        PlayerHost.Visibility = Visibility.Visible;
-        EmptyStateOverlay.Visibility = Visibility.Collapsed;
         _overlay?.UpdateTitle(fileName, filePath);
+
+        _isAudioMode = MediaFormats.IsAudioOnly(filePath);
+        _musicVisualizerActive = false;
+        ToggleMusicVisualizerBtn.Content = "📊 Visualizer";
+
+        if (_isAudioMode)
+        {
+            PlayerHost.Visibility = Visibility.Collapsed;
+            MusicHeroSurface.Visibility = Visibility.Visible;
+            EmptyStateOverlay.Visibility = Visibility.Collapsed;
+
+            // Initialize fallback placeholders
+            MusicTitleText.Text = Path.GetFileNameWithoutExtension(filePath);
+            MusicArtistAlbumText.Text = "Loading track info...";
+            MusicQualityBadgeText.Text = Path.GetExtension(filePath).TrimStart('.').ToUpperInvariant();
+            AlbumArtImage.Source = null;
+            AlbumArtPlaceholder.Visibility = Visibility.Visible;
+            LyricPrevText.Text = string.Empty;
+            LyricCurrentText.Text = "♪ Loading lyrics...";
+            LyricNextText.Text = string.Empty;
+
+            LoadAudioModeDetailsAsync(filePath);
+        }
+        else
+        {
+            _currentLyrics = null;
+            MusicHeroSurface.Visibility = Visibility.Collapsed;
+            PlayerHost.Visibility = Visibility.Visible;
+            EmptyStateOverlay.Visibility = Visibility.Collapsed;
+        }
 
         try
         {
@@ -412,6 +457,91 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading media file: {ex.Message}", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void LoadAudioModeDetailsAsync(string filePath)
+    {
+        try
+        {
+            // 1. Look for sidecar or embedded lyrics
+            _currentLyrics = await System.Threading.Tasks.Task.Run(() => NJPlayer.Features.Subtitles.LrcLyricsService.FindAndLoad(filePath));
+            if (_currentLyrics != null && _currentLyrics.Lines.Count > 0)
+            {
+                LyricCurrentText.Text = "♪ Synchronized lyrics ready";
+            }
+            else
+            {
+                LyricCurrentText.Text = "♪ Music playing";
+            }
+
+            // 2. Extract metadata and album art
+            var meta = await _audioMetadataService.ExtractMetadataAsync(filePath);
+
+            // Verify file hasn't changed while extracting
+            if (!string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            MusicTitleText.Text = meta.Title;
+            MusicArtistAlbumText.Text = meta.DisplaySubtitle;
+            MusicQualityBadgeText.Text = meta.QualityBadge;
+            _overlay?.UpdateTitle($"{meta.Title} — {meta.Artist}", filePath);
+
+            if (!string.IsNullOrEmpty(meta.AlbumArtPath) && File.Exists(meta.AlbumArtPath))
+            {
+                try
+                {
+                    var bi = new System.Windows.Media.Imaging.BitmapImage();
+                    bi.BeginInit();
+                    bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bi.UriSource = new Uri(meta.AlbumArtPath, UriKind.Absolute);
+                    bi.EndInit();
+                    bi.Freeze();
+
+                    AlbumArtImage.Source = bi;
+                    AlbumArtPlaceholder.Visibility = Visibility.Collapsed;
+                }
+                catch
+                {
+                    AlbumArtImage.Source = null;
+                    AlbumArtPlaceholder.Visibility = Visibility.Visible;
+                }
+            }
+            else
+            {
+                AlbumArtImage.Source = null;
+                AlbumArtPlaceholder.Visibility = Visibility.Visible;
+            }
+        }
+        catch (Exception ex)
+        {
+            NJPlayer.Core.Diagnostics.LogService.LogWarning($"[MainWindow] Audio details loading exception: {ex.Message}");
+        }
+    }
+
+    private void ToggleMusicVisualizer_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isAudioMode || _player == null) return;
+
+        _musicVisualizerActive = !_musicVisualizerActive;
+
+        if (_musicVisualizerActive)
+        {
+            PlayerHost.Visibility = Visibility.Visible;
+            MusicHeroSurface.Visibility = Visibility.Collapsed;
+            ToggleMusicVisualizerBtn.Content = "🖼 Album Art";
+            ApplyVisualizerFilter("showcqt");
+            _overlay?.ShowToast("Visualizer Mode", "📊");
+        }
+        else
+        {
+            ApplyVisualizerFilter("off");
+            PlayerHost.Visibility = Visibility.Collapsed;
+            MusicHeroSurface.Visibility = Visibility.Visible;
+            ToggleMusicVisualizerBtn.Content = "📊 Visualizer";
+            _overlay?.ShowToast("Album Art Mode", "🖼");
         }
     }
 
@@ -836,6 +966,20 @@ public partial class MainWindow : Window
                 {
                     _overlay?.ShowToast("Playlist Finished", "⏹");
                 }
+            });
+        }
+        else if (e.Reason == EndFileReason.Stop)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                _isAudioMode = false;
+                _musicVisualizerActive = false;
+                _currentFilePath = null;
+                _currentLyrics = null;
+                MusicHeroSurface.Visibility = Visibility.Collapsed;
+                PlayerHost.Visibility = Visibility.Collapsed;
+                EmptyStateOverlay.Visibility = Visibility.Visible;
+                _overlay?.UpdateTitle("NJ Player", string.Empty);
             });
         }
     }

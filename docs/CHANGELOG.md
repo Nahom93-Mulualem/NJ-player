@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Dedicated MP3 & Music Player Mode with Album Art & Ambient Glow**:
+  - Automatic detection of audio-only media (`.mp3`, `.flac`, `.m4a`, `.wav`, `.aac`, `.opus`, `.ogg`, `.wma`, `.alac`, `.aiff`, `.ape`) switching seamlessly between video canvas and modern music surface.
+  - Extracted front-cover album art (`APIC` tags) via `ffmpeg.exe` and sidecar detection (`cover.jpg`, `folder.jpg`, `albumart.png`, etc.) displayed with rounded corners (`RadiusLg`), border, and soft electric cyan ambient glow.
+  - Music track metadata banner displaying Title, Artist, Album, and dynamic quality badge (e.g. `FLAC • 96 kHz • 2 ch` or `MP3 • 320 kbps`).
+  - Seamless toggle button between high-res Album Art view and live real-time audio visualizer spectrum (`showcqt`).
+- **Synchronized Lyrics (.lrc) Parser & Real-Time Sync**:
+  - Implemented `LrcLyricsService` supporting standard `[mm:ss.xx]` and `[mm:ss.xxx]` timestamps, multiple timestamps per line, and track metadata headers (`[ti:]`, `[ar:]`, `[al:]`).
+  - Automatic sidecar discovery for matching `.lrc` files in the audio track directory.
+  - Real-time 3-line synchronized display during playback showing previous, next, and active lyrics highlighted in electric cyan (`#00E5FF`).
 - **Codec Management, Live Media Inspector & OpenCodec Preferences**:
   - Built-in zero-install codec engine leveraging libmpv/FFmpeg (H.264, HEVC, AV1, VP9, MPEG-2, VC-1, ProRes, AAC, AC3, EAC3, DTS, TrueHD, FLAC, Opus, ALAC).
   - Added dedicated `CodecManagerWindow` accessible via <kbd>I</kbd> (Media Info) showing real-time active video/audio decoders, resolution, frame rate, pixel format bit depth, audio channels, and container bitrate.
