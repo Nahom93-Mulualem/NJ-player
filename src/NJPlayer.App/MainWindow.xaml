@@ -57,11 +57,14 @@
                                 <DropShadowEffect Color="#00E5FF" BlurRadius="28" Opacity="0.18" ShadowDepth="4" Direction="270" />
                             </Border.Effect>
                             <Grid ClipToBounds="True">
-                                <!-- Fallback Vinyl / Audio Note Icon -->
-                                <StackPanel x:Name="AlbumArtPlaceholder" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock Text="🎵" FontSize="54" HorizontalAlignment="Center" Foreground="{StaticResource AccentBrush}" Opacity="0.8" />
-                                    <TextBlock Text="AUDIO" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" />
-                                </StackPanel>
+                                <!-- Default cover with NJ Logo (shown if song has no album art) -->
+                                <Grid x:Name="AlbumArtPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{StaticResource SurfaceBrush}">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Image Source="Assets/logo.png" Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,12" RenderOptions.BitmapScalingMode="HighQuality" />
+                                        <TextBlock Text="NJ PLAYER" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="AUDIO" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Grid>
 
                                 <!-- Extracted or Sidecar Album Art Image -->
                                 <Image x:Name="AlbumArtImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />

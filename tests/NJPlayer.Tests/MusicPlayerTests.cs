@@ -165,4 +165,47 @@ public class MusicPlayerTests
             }
         }
     }
+
+    [Fact]
+    public void VisualizerFilterBuilder_BuildsCleanFiltersForDifferentModes()
+    {
+        var bars = VisualizerFilterBuilder.BuildFilter("bars");
+        Assert.Contains("showfreqs", bars);
+        Assert.Contains("mode=bar", bars);
+
+        var wave = VisualizerFilterBuilder.BuildFilter("waveform");
+        Assert.Contains("showwaves", wave);
+        Assert.Contains("mode=line", wave);
+
+        var spec = VisualizerFilterBuilder.BuildFilter("spectrum");
+        Assert.Contains("showcqt", spec);
+    }
+
+    [Fact]
+    public void VisualizerFilterBuilder_EscapeFilterPath_EscapesCorrectly()
+    {
+        var path = @"C:\Music\Backgrounds\bg:photo'1.jpg";
+        var escaped = VisualizerFilterBuilder.EscapeFilterPath(path);
+
+        Assert.Equal(@"C\:/Music/Backgrounds/bg\:photo\'1.jpg", escaped);
+    }
+
+    [Fact]
+    public void VisualizerFilterBuilder_WithBackgroundFile_GeneratesCompositeFilter()
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            var filter = VisualizerFilterBuilder.BuildFilter("bars", tempFile, 1280, 720);
+
+            Assert.Contains("movie=", filter);
+            Assert.Contains("overlay=", filter);
+            Assert.Contains("colorkey=", filter);
+            Assert.Contains("showfreqs=", filter);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
 }

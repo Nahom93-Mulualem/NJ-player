@@ -33,6 +33,8 @@ public sealed class AppSettings
     // Radio & Visualizer configuration
     public List<string> RadioFavorites { get; set; } = new();
     public string VisualizerMode { get; set; } = "showcqt";
+    public string? VisualizerBackgroundPath { get; set; }
+    public string VisualizerType { get; set; } = "bars";
 
     // Codec & OpenCodec configuration
     public string VideoDecoderPriority { get; set; } = "auto";

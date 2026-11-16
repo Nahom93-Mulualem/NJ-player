@@ -333,6 +333,17 @@ public partial class ControlsOverlayWindow : Window
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files != null && files.Length > 0 && _mainWindow.IsVisualizerActive)
+            {
+                var first = files[0];
+                var ext = System.IO.Path.GetExtension(first).ToLowerInvariant();
+                if (ext is ".jpg" or ".jpeg" or ".png" or ".mp4" or ".mkv")
+                {
+                    _mainWindow.SetVisualizerBackground(first);
+                    e.Handled = true;
+                    return;
+                }
+            }
             _mainWindow.HandleDropFiles(files);
             e.Handled = true;
         }
@@ -588,6 +599,80 @@ public partial class ControlsOverlayWindow : Window
     {
         _mainWindow.ToggleMaximize();
         SyncWithMainWindow();
+    }
+
+    public void UpdateVisualizerModeState(bool isVisualizerActive, string currentType, bool isMusicMode)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (isMusicMode)
+            {
+                VisualizerToggleBtn.Visibility = Visibility.Visible;
+                if (isVisualizerActive)
+                {
+                    VisualizerToggleIcon.Text = "🖼";
+                    VisualizerToggleText.Text = "Cover View";
+                    VisualizerFloatingControls.Visibility = Visibility.Visible;
+                    VisualizerStyleBtnText.Text = currentType?.ToLowerInvariant() switch
+                    {
+                        "waveform" => "🌊 Waveform",
+                        "spectrum" => "🌈 Spectrum",
+                        _ => "📊 Bars"
+                    };
+                }
+                else
+                {
+                    VisualizerToggleIcon.Text = "📊";
+                    VisualizerToggleText.Text = "Visualizer";
+                    VisualizerFloatingControls.Visibility = Visibility.Collapsed;
+                }
+            }
+            else
+            {
+                VisualizerToggleBtn.Visibility = Visibility.Collapsed;
+                VisualizerFloatingControls.Visibility = Visibility.Collapsed;
+            }
+        });
+    }
+
+    private void VisualizerToggleBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ToggleVisualizer();
+        ShowControls();
+    }
+
+    private void ReturnToCoverBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.SetVisualizerActive(false);
+        ShowControls();
+    }
+
+    private void VisualizerStyleBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.CycleVisualizerStyle();
+        ShowControls();
+    }
+
+    private void VisualizerBgBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose Visualizer Background (Image or Video) - NJ Player",
+            Filter = "Media Files (*.jpg;*.jpeg;*.png;*.mp4;*.mkv)|*.jpg;*.jpeg;*.png;*.mp4;*.mkv|Images (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|Videos (*.mp4;*.mkv)|*.mp4;*.mkv|All Files (*.*)|*.*",
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(_mainWindow) == true)
+        {
+            _mainWindow.SetVisualizerBackground(dialog.FileName);
+        }
+        ShowControls();
+    }
+
+    private void VisualizerClearBgBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ClearVisualizerBackground();
+        ShowControls();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

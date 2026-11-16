@@ -54,6 +54,12 @@
 
                 <!-- Window Buttons (Trimmer, Downloader, Equalizer, Settings, Hotkeys, Always on top, Minimize, Maximize, Close) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="VisualizerToggleBtn" Style="{StaticResource CaptionButtonStyle}" ToolTip="Toggle Visualizer / Cover View (F4)" Click="VisualizerToggleBtn_Click" Visibility="Collapsed" Width="Auto" Padding="8,0" Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="VisualizerToggleIcon" Text="📊" FontSize="11" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="VisualizerToggleText" Text="Visualizer" FontSize="11" Foreground="{StaticResource AccentBrush}"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="TrimmerButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Lossless Trimmer" Click="TrimmerButton_Click">
                         <TextBlock Text="✂" FontSize="11" />
                     </Button>
@@ -99,6 +105,29 @@
                     </Button>
                 </StackPanel>
             </Grid>
+        </Border>
+
+        <!-- Visualizer Floating Overlay Controls (visible when visualizer is active) -->
+        <Border x:Name="VisualizerFloatingControls" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,46,16,0" Visibility="Collapsed">
+            <Border Background="{StaticResource Surface85Brush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="6,4">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="ReturnToCoverBtn" Style="{StaticResource PrimaryButtonStyle}" Height="28" Padding="10,0" ToolTip="Return to Cover View (F4)" Click="ReturnToCoverBtn_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🖼" FontSize="12" Margin="0,0,6,0"/>
+                            <TextBlock Text="Cover View" FontWeight="SemiBold" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="VisualizerStyleBtn" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="8,0" Margin="6,0,0,0" ToolTip="Switch Visualizer Style (Bars / Waveform / Spectrum)" Click="VisualizerStyleBtn_Click">
+                        <TextBlock x:Name="VisualizerStyleBtnText" Text="📊 Bars" FontSize="11"/>
+                    </Button>
+                    <Button x:Name="VisualizerBgBtn" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="8,0" Margin="6,0,0,0" ToolTip="Set Custom Background Image or Video (jpg, png, mp4)" Click="VisualizerBgBtn_Click">
+                        <TextBlock Text="🌄 Background" FontSize="11"/>
+                    </Button>
+                    <Button x:Name="VisualizerClearBgBtn" Style="{StaticResource IconButton}" Width="28" Height="28" Margin="4,0,0,0" ToolTip="Clear Background" Click="VisualizerClearBgBtn_Click">
+                        <TextBlock Text="✕" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
+                    </Button>
+                </StackPanel>
+            </Border>
         </Border>
 
         <!-- BOTTOM CONTROL BAR (72px, gradient transparent to 92% bg) -->

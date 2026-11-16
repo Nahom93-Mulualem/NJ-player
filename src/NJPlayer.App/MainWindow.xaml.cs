@@ -59,6 +59,8 @@ public partial class MainWindow : Window
     private double _savedHeight = 580;
 
     public bool IsFullscreen => _isFullscreen;
+    public bool IsVisualizerActive => _musicVisualizerActive;
+    public bool IsAudioMode => _isAudioMode;
     public SettingsManager SettingsManager => _settingsManager;
 
     public MainWindow(Stopwatch? benchStopwatch = null)
@@ -521,18 +523,19 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ToggleMusicVisualizer_Click(object sender, RoutedEventArgs e)
+    public void SetVisualizerActive(bool active)
     {
         if (!_isAudioMode || _player == null) return;
 
-        _musicVisualizerActive = !_musicVisualizerActive;
+        _musicVisualizerActive = active;
 
         if (_musicVisualizerActive)
         {
             PlayerHost.Visibility = Visibility.Visible;
             MusicHeroSurface.Visibility = Visibility.Collapsed;
-            ToggleMusicVisualizerBtn.Content = "🖼 Album Art";
-            ApplyVisualizerFilter("showcqt");
+            ToggleMusicVisualizerBtn.Content = "🖼 Cover View";
+            ApplyVisualizerFilter(_settingsManager.Settings.VisualizerType);
+            _overlay?.UpdateVisualizerModeState(true, _settingsManager.Settings.VisualizerType, true);
             _overlay?.ShowToast("Visualizer Mode", "📊");
         }
         else
@@ -541,8 +544,76 @@ public partial class MainWindow : Window
             PlayerHost.Visibility = Visibility.Collapsed;
             MusicHeroSurface.Visibility = Visibility.Visible;
             ToggleMusicVisualizerBtn.Content = "📊 Visualizer";
-            _overlay?.ShowToast("Album Art Mode", "🖼");
+            _overlay?.UpdateVisualizerModeState(false, _settingsManager.Settings.VisualizerType, true);
+            _overlay?.ShowToast("Cover View", "🖼");
         }
+    }
+
+    public void ToggleVisualizer()
+    {
+        SetVisualizerActive(!_musicVisualizerActive);
+    }
+
+    public void CycleVisualizerStyle()
+    {
+        var current = _settingsManager.Settings.VisualizerType?.ToLowerInvariant() ?? "bars";
+        var next = current switch
+        {
+            "bars" => "waveform",
+            "waveform" => "spectrum",
+            _ => "bars"
+        };
+
+        _settingsManager.Settings.VisualizerType = next;
+        _settingsManager.Save();
+
+        var label = next switch
+        {
+            "waveform" => "Waveform 🌊",
+            "spectrum" => "Spectrum 🌈",
+            _ => "Frequency Bars 📊"
+        };
+
+        _overlay?.UpdateVisualizerModeState(_musicVisualizerActive, next, _isAudioMode);
+        _overlay?.ShowToast($"Visualizer: {label}", "📊");
+
+        if (_musicVisualizerActive)
+        {
+            ApplyVisualizerFilter(next);
+        }
+    }
+
+    public void SetVisualizerBackground(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+
+        _settingsManager.Settings.VisualizerBackgroundPath = path;
+        _settingsManager.Save();
+
+        _overlay?.ShowToast($"Background: {Path.GetFileName(path)}", "🌄");
+
+        if (_musicVisualizerActive)
+        {
+            ApplyVisualizerFilter(_settingsManager.Settings.VisualizerType);
+        }
+    }
+
+    public void ClearVisualizerBackground()
+    {
+        _settingsManager.Settings.VisualizerBackgroundPath = null;
+        _settingsManager.Save();
+
+        _overlay?.ShowToast("Background Cleared", "✕");
+
+        if (_musicVisualizerActive)
+        {
+            ApplyVisualizerFilter(_settingsManager.Settings.VisualizerType);
+        }
+    }
+
+    private void ToggleMusicVisualizer_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleVisualizer();
     }
 
     public NJPlayer.Features.Audio.IAudioSuite GetOrCreateAudioSuite()
@@ -778,7 +849,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        var filter = Features.Radio.RadioBrowserService.BuildVisualizerFilter(mode);
+        var bgPath = _settingsManager.Settings.VisualizerBackgroundPath;
+        var filter = NJPlayer.Features.Audio.VisualizerFilterBuilder.BuildFilter(mode, bgPath);
         try
         {
             _player.SetPropertyString("lavfi-complex", filter);
@@ -786,6 +858,19 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             NJPlayer.Core.Diagnostics.LogService.LogError("Visualizer.ApplyFilter", ex);
+            // Fallback: try standard visualizer without custom background if it failed
+            if (!string.IsNullOrEmpty(bgPath))
+            {
+                try
+                {
+                    var fallback = NJPlayer.Features.Audio.VisualizerFilterBuilder.BuildFilter(mode, null);
+                    _player.SetPropertyString("lavfi-complex", fallback);
+                    _overlay?.ShowToast("Background failed; using standard visualizer", "⚡", isError: true);
+                    return;
+                }
+                catch { }
+            }
+
             try
             {
                 _player.SetPropertyString("lavfi-complex", "");
@@ -1076,6 +1161,17 @@ public partial class MainWindow : Window
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files != null && files.Length > 0 && _musicVisualizerActive)
+            {
+                var first = files[0];
+                var ext = Path.GetExtension(first).ToLowerInvariant();
+                if (ext is ".jpg" or ".jpeg" or ".png" or ".mp4" or ".mkv")
+                {
+                    SetVisualizerBackground(first);
+                    e.Handled = true;
+                    return;
+                }
+            }
             HandleDropFiles(files);
         }
     }
@@ -1133,6 +1229,14 @@ public partial class MainWindow : Window
         if ((key == Key.Return || key == Key.Enter) && Keyboard.Modifiers == ModifierKeys.None)
         {
             ToggleFullscreen();
+            e.Handled = true;
+            return;
+        }
+
+        // F4 or Ctrl+V toggles visualizer / cover view in music mode
+        if ((key == Key.F4 || (key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)) && _isAudioMode)
+        {
+            ToggleVisualizer();
             e.Handled = true;
             return;
         }
