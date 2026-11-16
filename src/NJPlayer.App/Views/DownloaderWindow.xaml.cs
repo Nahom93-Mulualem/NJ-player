@@ -70,6 +70,50 @@ public partial class DownloaderWindow : Window
         MessageBox.Show(this, msg, "How to Fix yt-dlp - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private async void UpdateYtDlp_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_downloaderService.IsYtDlpAvailable)
+        {
+            HowToFixYtDlp_Click(sender, e);
+            return;
+        }
+
+        UpdateYtDlpBtn.IsEnabled = false;
+        ProgressSection.Visibility = Visibility.Visible;
+        ProgressStatusText.Text = "Updating yt-dlp to latest release...";
+        DownloadProgressBar.IsIndeterminate = true;
+        ProgressPctText.Text = "...";
+
+        try
+        {
+            var progress = new Progress<string>(msg =>
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    ProgressStatusText.Text = msg;
+                });
+            });
+
+            var result = await _downloaderService.UpdateYtDlpAsync(progress);
+            DownloadProgressBar.IsIndeterminate = false;
+            DownloadProgressBar.Value = 100;
+            ProgressPctText.Text = "100%";
+            ProgressStatusText.Text = "yt-dlp is up to date!";
+
+            MessageBox.Show(this, result, "yt-dlp Update - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            DownloadProgressBar.IsIndeterminate = false;
+            ProgressStatusText.Text = $"Update error: {ex.Message}";
+            MessageBox.Show(this, $"Could not update yt-dlp: {ex.Message}", "yt-dlp Update Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            UpdateYtDlpBtn.IsEnabled = true;
+        }
+    }
+
     private void UrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_downloaderService.IsYtDlpAvailable)

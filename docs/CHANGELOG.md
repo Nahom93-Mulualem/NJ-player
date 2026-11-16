@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Windows Explorer Context Menu & Standalone Trimmer Mode (Section 3)**:
+  - Added user-level context menu entry `"Trim with NJ Player"` registered under `HKCU\Software\Classes\*\shell\NJPlayer.Trim` (no UAC admin required).
+  - Install and uninstall toggle accessible from both the Trimmer dialog and General Settings.
+  - Added command-line `--trim <filePath>` launch mode: opens the trim window immediately in standalone mode without launching the full player, and cleanly shuts down when closed.
+- **Batch Lossless Trimming from Pasted Timestamp Ranges (Section 4)**:
+  - Added Batch Trim tab in `TrimmerWindow` supporting lists of timestamp ranges (e.g. `00:30-01:15` or `01:20:00-01:45:00`).
+  - Added `BatchTrimParser` validating every line, reporting the exact line number of any syntax or duration errors (`End <= Start`).
+  - Fast, lossless extraction of all segments in one pass using FFmpeg stream copy (`-c copy`) into `{name}_part1`, `{name}_part2`, etc., with animated progress and cancellation.
+- **Enhanced High-Resolution Logo & Title Bar Branding (Section 5)**:
+  - Enlarged empty state logo from 96x96 to 140x140 with high-quality bitmap scaling (`RenderOptions.BitmapScalingMode="HighQuality"`) and soft cyan ambient glow (`#00E5FF`).
+  - Upgraded top bar branding icon from 16x16 to sharp 24x24 high-resolution logo with generous spacing.
+- **Direct yt-dlp Self-Updater (`yt-dlp -U`)**:
+  - Added `"🔄 Update yt-dlp"` button in both the Downloader window title bar and General Settings.
+  - Executes `yt-dlp.exe -U` asynchronously in the background, reporting live progress and displaying confirmation alerts.
 - **Dedicated MP3 & Music Player Mode with Album Art & Ambient Glow**:
   - Automatic detection of audio-only media (`.mp3`, `.flac`, `.m4a`, `.wav`, `.aac`, `.opus`, `.ogg`, `.wma`, `.alac`, `.aiff`, `.ape`) switching seamlessly between video canvas and modern music surface.
   - Extracted front-cover album art (`APIC` tags) via `ffmpeg.exe` and sidecar detection (`cover.jpg`, `folder.jpg`, `albumart.png`, etc.) displayed with rounded corners (`RadiusLg`), border, and soft electric cyan ambient glow.

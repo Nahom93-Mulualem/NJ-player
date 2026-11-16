@@ -211,5 +211,70 @@ public sealed class MediaDownloaderService
 
         return downloadedFilePath;
     }
+
+    /// <summary>
+    /// Executes yt-dlp -U to update yt-dlp to the latest version.
+    /// </summary>
+    public async Task<string> UpdateYtDlpAsync(IProgress<string>? progress = null, CancellationToken ct = default)
+    {
+        if (!IsYtDlpAvailable)
+        {
+            throw new FileNotFoundException(
+                "yt-dlp.exe was not found. Please place yt-dlp.exe into the 'libs' folder or system PATH.");
+        }
+
+        progress?.Report("Checking for updates (yt-dlp -U)...");
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = _ytdlpPath!,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        startInfo.ArgumentList.Add("-U");
+
+        using var process = new Process { StartInfo = startInfo };
+        var outputBuilder = new System.Text.StringBuilder();
+
+        process.OutputDataReceived += (_, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+            {
+                outputBuilder.AppendLine(e.Data);
+                progress?.Report(e.Data);
+            }
+        };
+
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+            {
+                outputBuilder.AppendLine(e.Data);
+                progress?.Report(e.Data);
+            }
+        };
+
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        await using (ct.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
+            }
+            catch { }
+        }))
+        {
+            await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        }
+
+        var result = outputBuilder.ToString().Trim();
+        return string.IsNullOrEmpty(result) ? "yt-dlp update completed." : result;
+    }
 }
 

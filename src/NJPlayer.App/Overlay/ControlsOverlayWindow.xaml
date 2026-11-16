@@ -37,9 +37,9 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- App Icon & Title + Mode Switcher -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,8,0">
-                    <Image Source="../Assets/app_16x16.png" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="NJ Player" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,12,0">
+                    <Image Source="../Assets/logo.png" Width="24" Height="24" VerticalAlignment="Center" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="NJ Player" FontWeight="Bold" FontSize="13" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                     <!-- Mode Switcher Pill (Video / Music) -->
                     <Button x:Name="ModeSwitcherButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Switch Player Mode (Ctrl+M)" Click="ModeSwitcher_Click" Width="Auto" Height="26" Padding="6,0">

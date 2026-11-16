@@ -188,5 +188,103 @@ public sealed class MediaTrimmerService
             await tcs.Task.ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// Cuts multiple segments from a media file in batch using fast stream copy (-c copy).
+    /// </summary>
+    public async Task BatchTrimAsync(
+        string inputFilePath,
+        IReadOnlyList<BatchTrimSegment> segments,
+        IProgress<TrimProgress>? progress = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(inputFilePath) || !File.Exists(inputFilePath))
+        {
+            throw new FileNotFoundException($"Input file not found: {inputFilePath}");
+        }
+
+        if (segments == null || segments.Count == 0)
+        {
+            throw new ArgumentException("No segments specified for batch trimming.", nameof(segments));
+        }
+
+        if (!IsFfmpegAvailable)
+        {
+            throw new FileNotFoundException(
+                "ffmpeg.exe was not found. Please place ffmpeg.exe into the 'libs' folder or add it to system PATH.");
+        }
+
+        var totalSegments = segments.Count;
+
+        for (int i = 0; i < totalSegments; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var seg = segments[i];
+            var segmentPct = (double)i / totalSegments * 100.0;
+
+            progress?.Report(new TrimProgress
+            {
+                Percentage = segmentPct,
+                ProcessedTime = TimeSpan.Zero,
+                TotalDuration = seg.Duration,
+                StatusMessage = $"Cutting segment {seg.SegmentIndex} of {totalSegments} ({FormatTime(seg.StartTime)} - {FormatTime(seg.EndTime)})..."
+            });
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = _ffmpegPath!,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            psi.ArgumentList.Add("-hide_banner");
+            psi.ArgumentList.Add("-y");
+            psi.ArgumentList.Add("-ss");
+            psi.ArgumentList.Add(seg.StartTime.ToString(@"hh\:mm\:ss\.fff", CultureInfo.InvariantCulture));
+            psi.ArgumentList.Add("-to");
+            psi.ArgumentList.Add(seg.EndTime.ToString(@"hh\:mm\:ss\.fff", CultureInfo.InvariantCulture));
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add(inputFilePath);
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add("copy");
+            psi.ArgumentList.Add(seg.OutputFilePath);
+
+            using var process = new Process { StartInfo = psi };
+
+            await using (ct.Register(() =>
+            {
+                try
+                {
+                    if (!process.HasExited) process.Kill(entireProcessTree: true);
+                }
+                catch { }
+            }))
+            {
+                process.Start();
+                var readErrorTask = process.StandardError.ReadToEndAsync(ct);
+                await process.WaitForExitAsync(ct).ConfigureAwait(false);
+
+                if (process.ExitCode != 0)
+                {
+                    var err = await readErrorTask.ConfigureAwait(false);
+                    throw new InvalidOperationException($"FFmpeg failed cutting segment {seg.SegmentIndex} (code {process.ExitCode}): {err}");
+                }
+            }
+        }
+
+        progress?.Report(new TrimProgress
+        {
+            Percentage = 100.0,
+            ProcessedTime = TimeSpan.Zero,
+            TotalDuration = TimeSpan.Zero,
+            StatusMessage = $"Batch trim complete! {totalSegments} segments saved."
+        });
+    }
+
+    private static string FormatTime(TimeSpan t) =>
+        t.TotalHours >= 1 ? t.ToString(@"hh\:mm\:ss") : t.ToString(@"mm\:ss");
 }
 

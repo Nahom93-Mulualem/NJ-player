@@ -103,9 +103,14 @@
             <!-- Empty State Placeholder (Visible when no video is playing) -->
             <Border x:Name="EmptyStateOverlay" Background="{StaticResource BgBrush}" Visibility="Visible">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Image Source="Assets/logo.png" Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                    <TextBlock Text="NJ Player" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
-                    <TextBlock Text="Drop a video file here or press Ctrl+O" FontSize="14" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                    <Border Width="140" Height="140" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#00E5FF" BlurRadius="36" Opacity="0.28" ShadowDepth="4" Direction="270" />
+                        </Border.Effect>
+                        <Image Source="Assets/logo.png" Width="136" Height="136" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                    </Border>
+                    <TextBlock Text="NJ Player" FontSize="32" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Drop a video or audio file here or press Ctrl+O" FontSize="14" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
 
                     <!-- Recent Files List -->
                     <StackPanel x:Name="RecentFilesPanel" Margin="0,20,0,0" HorizontalAlignment="Center" Visibility="Collapsed">

@@ -45,6 +45,61 @@ public partial class SettingsWindow : Window
 
         StoragePathText.Text = _settingsManager.StorageDirectory;
         UpdateStats();
+        UpdateContextMenuState();
+    }
+
+    private void UpdateContextMenuState()
+    {
+        var isReg = ContextMenuHelper.IsRegistered();
+        ToggleContextMenuBtn.Content = isReg ? "Uninstall" : "Install";
+        ContextMenuStatusText.Text = isReg
+            ? "Registered in Windows Explorer context menu."
+            : "Not currently registered in Explorer context menu.";
+    }
+
+    private void ToggleContextMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (ContextMenuHelper.IsRegistered())
+        {
+            if (ContextMenuHelper.Unregister())
+            {
+                MessageBox.Show(this, "Explorer context menu entry removed.", "Context Menu", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        else
+        {
+            if (ContextMenuHelper.Register())
+            {
+                MessageBox.Show(this, "Explorer context menu entry registered!", "Context Menu", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(this, "Failed to register context menu.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        UpdateContextMenuState();
+    }
+
+    private async void SettingsUpdateYtDlp_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsUpdateYtDlpBtn.IsEnabled = false;
+        SettingsUpdateYtDlpBtn.Content = "Updating...";
+
+        try
+        {
+            var downloader = new NJPlayer.Features.Downloader.MediaDownloaderService();
+            var output = await downloader.UpdateYtDlpAsync();
+            MessageBox.Show(this, output, "yt-dlp Update", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"yt-dlp update error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            SettingsUpdateYtDlpBtn.IsEnabled = true;
+            SettingsUpdateYtDlpBtn.Content = "🔄 Update yt-dlp";
+        }
     }
 
     private void UpdateStats()

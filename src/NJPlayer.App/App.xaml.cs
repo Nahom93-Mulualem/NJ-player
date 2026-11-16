@@ -63,6 +63,25 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Standalone Trimmer Mode from Explorer context menu
+        var trimIdx = Array.FindIndex(e.Args, a => string.Equals(a, "--trim", StringComparison.OrdinalIgnoreCase));
+        if (trimIdx >= 0 && trimIdx + 1 < e.Args.Length)
+        {
+            var targetFile = e.Args[trimIdx + 1];
+            if (System.IO.File.Exists(targetFile))
+            {
+                var trimmerService = new NJPlayer.Features.Trimmer.MediaTrimmerService();
+                var trimmerWin = new Views.TrimmerWindow(null, trimmerService, targetFile)
+                {
+                    ShowInTaskbar = true,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+                trimmerWin.Closed += (_, _) => Shutdown();
+                trimmerWin.Show();
+                return;
+            }
+        }
+
         var stopwatch = Stopwatch.StartNew();
         bool isBench = e.Args.Any(a => string.Equals(a, "--bench", StringComparison.OrdinalIgnoreCase));
 

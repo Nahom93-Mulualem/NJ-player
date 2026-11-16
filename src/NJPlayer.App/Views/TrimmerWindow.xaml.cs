@@ -22,6 +22,8 @@ public partial class TrimmerWindow : Window
     private readonly string _inputFilePath;
     private CancellationTokenSource? _trimCts;
     private bool _isForceClosing = false;
+    private bool _isBatchMode = false;
+    private BatchTrimValidationResult? _lastBatchValidation;
 
     public event Action<string>? ClipExported;
 
@@ -40,6 +42,8 @@ public partial class TrimmerWindow : Window
         MissingFfmpegBanner.Visibility = _trimmerService.IsFfmpegAvailable ? Visibility.Collapsed : Visibility.Visible;
         ExportButton.IsEnabled = _trimmerService.IsFfmpegAvailable;
 
+        UpdateContextMenuBtnText();
+
         if (File.Exists(_inputFilePath))
         {
             FileTitleText.Text = Path.GetFileName(_inputFilePath);
@@ -54,6 +58,89 @@ public partial class TrimmerWindow : Window
             InPointBox.Text = FormatTime(currentPos);
             OutPointBox.Text = FormatTime(currentPos + TimeSpan.FromSeconds(30) < totalDur ? currentPos + TimeSpan.FromSeconds(30) : totalDur);
             UpdateDurationSummary();
+        }
+
+        Loaded += (_, _) => ValidateBatchInput();
+    }
+
+    private void UpdateContextMenuBtnText()
+    {
+        var isReg = NJPlayer.Core.Settings.ContextMenuHelper.IsRegistered();
+        ContextMenuBtnText.Text = isReg ? "Remove Menu" : "Add Explorer Menu";
+    }
+
+    private void ContextMenuToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var isReg = NJPlayer.Core.Settings.ContextMenuHelper.IsRegistered();
+        if (isReg)
+        {
+            if (NJPlayer.Core.Settings.ContextMenuHelper.Unregister())
+            {
+                MessageBox.Show(this, "The 'Trim with NJ Player' context menu has been removed from Windows Explorer.", "Explorer Menu - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        else
+        {
+            if (NJPlayer.Core.Settings.ContextMenuHelper.Register())
+            {
+                MessageBox.Show(this, "The 'Trim with NJ Player' context menu has been registered in Windows Explorer!\nRight-click any audio or video file in Explorer to trim it directly.", "Explorer Menu - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(this, "Could not register context menu. Check user permissions.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        UpdateContextMenuBtnText();
+    }
+
+    private void SingleMode_Click(object sender, RoutedEventArgs e)
+    {
+        _isBatchMode = false;
+        SingleCutSection.Visibility = Visibility.Visible;
+        BatchTrimSection.Visibility = Visibility.Collapsed;
+        SingleModeBtn.Style = (Style)FindResource("PrimaryButtonStyle");
+        BatchModeBtn.Style = (Style)FindResource("SecondaryButtonStyle");
+        ExportButton.Content = "Export Clip";
+        ExportButton.IsEnabled = _trimmerService.IsFfmpegAvailable;
+    }
+
+    private void BatchMode_Click(object sender, RoutedEventArgs e)
+    {
+        _isBatchMode = true;
+        SingleCutSection.Visibility = Visibility.Collapsed;
+        BatchTrimSection.Visibility = Visibility.Visible;
+        SingleModeBtn.Style = (Style)FindResource("SecondaryButtonStyle");
+        BatchModeBtn.Style = (Style)FindResource("PrimaryButtonStyle");
+        ExportButton.Content = "Start Batch Cut";
+        ValidateBatchInput();
+    }
+
+    private void BatchInputBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        ValidateBatchInput();
+    }
+
+    private void ValidateBatchInput()
+    {
+        if (string.IsNullOrWhiteSpace(_inputFilePath)) return;
+
+        _lastBatchValidation = BatchTrimParser.ValidateAndParse(BatchInputBox.Text, _inputFilePath);
+
+        if (_lastBatchValidation.IsValid)
+        {
+            var count = _lastBatchValidation.Segments.Count;
+            var totalDuration = TimeSpan.FromTicks(_lastBatchValidation.Segments.Sum(s => s.Duration.Ticks));
+            BatchValidationStatusText.Text = $"✓ {count} segment{(count > 1 ? "s" : "")} ready for export (Total cut length: {totalDuration:mm\\:ss}).";
+            BatchValidationStatusText.Foreground = (System.Windows.Media.Brush)FindResource("SuccessBrush");
+            BatchStatusBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("SuccessBrush");
+            if (_isBatchMode) ExportButton.IsEnabled = _trimmerService.IsFfmpegAvailable;
+        }
+        else
+        {
+            BatchValidationStatusText.Text = $"⚠️ {_lastBatchValidation.ErrorMessage}";
+            BatchValidationStatusText.Foreground = (System.Windows.Media.Brush)FindResource("DangerBrush");
+            BatchStatusBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("DangerBrush");
+            if (_isBatchMode) ExportButton.IsEnabled = false;
         }
     }
 
@@ -168,6 +255,54 @@ public partial class TrimmerWindow : Window
 
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
+        if (_isBatchMode)
+        {
+            if (_lastBatchValidation == null || !_lastBatchValidation.IsValid || _lastBatchValidation.Segments.Count == 0)
+            {
+                MessageBox.Show("Please enter valid timestamp cuts before exporting.", "Invalid Cuts", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _trimCts = new CancellationTokenSource();
+            ProgressSection.Visibility = Visibility.Visible;
+            CancelButton.Visibility = Visibility.Visible;
+            ExportButton.IsEnabled = false;
+
+            var batchProgress = new Progress<TrimProgress>(p =>
+            {
+                TrimProgressBar.Value = p.Percentage;
+                ProgressPctText.Text = $"{p.Percentage:F0}%";
+                ProgressStatusText.Text = p.StatusMessage;
+            });
+
+            try
+            {
+                await _trimmerService.BatchTrimAsync(_inputFilePath, _lastBatchValidation.Segments, batchProgress, _trimCts.Token);
+
+                MessageBox.Show(
+                    $"Batch trim complete!\n\nSuccessfully extracted {_lastBatchValidation.Segments.Count} segments into:\n{Path.GetDirectoryName(_inputFilePath)}",
+                    "Batch Trim Complete - NJ Player",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (OperationCanceledException)
+            {
+                ProgressStatusText.Text = "Batch trim was cancelled.";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Batch trimming failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ProgressStatusText.Text = "Batch export failed.";
+            }
+            finally
+            {
+                ExportButton.IsEnabled = true;
+                CancelButton.Visibility = Visibility.Collapsed;
+            }
+
+            return;
+        }
+
         if (!TryParseTime(InPointBox.Text, out var inPoint))
         {
             MessageBox.Show("Please enter a valid Start Point format (HH:MM:SS.mmm).", "Invalid Time", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -261,12 +396,19 @@ public partial class TrimmerWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e)
     {
-        Hide();
+        if (Owner == null)
+        {
+            Close();
+        }
+        else
+        {
+            Hide();
+        }
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        if (_isForceClosing)
+        if (_isForceClosing || Owner == null)
         {
             base.OnClosing(e);
             return;

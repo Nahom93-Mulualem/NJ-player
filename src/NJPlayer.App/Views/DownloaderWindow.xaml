@@ -31,7 +31,15 @@
             <!-- Title Bar -->
             <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12,12,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid Margin="16,0,8,0">
-                    <TextBlock Text="📥 Online Downloader (yt-dlp)" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="📥 Online Downloader (yt-dlp)" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                        <Button x:Name="UpdateYtDlpBtn" Style="{StaticResource SecondaryButtonStyle}" Height="24" Padding="8,0" Margin="14,0,0,0" ToolTip="Update yt-dlp to latest version (yt-dlp -U)" Click="UpdateYtDlp_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔄" FontSize="10" Margin="0,0,4,0"/>
+                                <TextBlock Text="Update yt-dlp" FontSize="11"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                     <Button HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource CloseCaptionButtonStyle}" Click="Close_Click">
                         <TextBlock Text="✕" FontSize="11" />
                     </Button>

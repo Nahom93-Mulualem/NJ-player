@@ -113,7 +113,32 @@
                         </Grid>
                     </Border>
 
-                    <!-- Section 4: File Associations (Inno Setup Info) -->
+                    <!-- Section 4: Integrations & Tools -->
+                    <TextBlock Text="INTEGRATIONS &amp; TOOLS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,10" />
+
+                    <!-- Explorer Context Menu -->
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,10" Margin="0,0,0,10">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="Windows Explorer 'Trim' Menu" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                <TextBlock x:Name="ContextMenuStatusText" Text="Add 'Trim with NJ Player' to right-click menu." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <Button x:Name="ToggleContextMenuBtn" Content="Install" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="12,0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="ToggleContextMenu_Click" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Update yt-dlp -->
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,10" Margin="0,0,0,10">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="yt-dlp Video Downloader" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                <TextBlock Text="Keep yt-dlp up-to-date with latest website extractors." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <Button x:Name="SettingsUpdateYtDlpBtn" Content="🔄 Update yt-dlp" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="SettingsUpdateYtDlp_Click" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Section 5: File Associations (Inno Setup Info) -->
                     <Border Background="#1A212A" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,10">
                         <StackPanel>
                             <TextBlock Text="ℹ Windows File Associations" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource TextBrush}" />
