@@ -20,7 +20,15 @@ public partial class MainWindow : Window
     private MpvPlayer? _player;
     private ControlsOverlayWindow? _overlay;
     private readonly NJPlayer.Core.Hotkeys.HotkeyManager _hotkeyManager = new();
-    private readonly NJPlayer.Core.Playlist.PlaylistManager _playlistManager = new();
+    private readonly NJPlayer.Core.Playlist.PlaylistManager _videoPlaylistManager = new();
+    private readonly NJPlayer.Core.Playlist.PlaylistManager _musicPlaylistManager = new();
+    private readonly NJPlayer.Core.Playback.PlaybackModeState _videoState = new();
+    private readonly NJPlayer.Core.Playback.PlaybackModeState _musicState = new();
+    private NJPlayer.Core.Playback.PlayerMode _currentMode = NJPlayer.Core.Playback.PlayerMode.Video;
+    private NJPlayer.Core.Playlist.PlaylistManager _playlistManager => ActivePlaylistManager;
+    public NJPlayer.Core.Playlist.PlaylistManager ActivePlaylistManager =>
+        _currentMode == NJPlayer.Core.Playback.PlayerMode.Music ? _musicPlaylistManager : _videoPlaylistManager;
+    public NJPlayer.Core.Playback.PlayerMode CurrentMode => _currentMode;
     private readonly NJPlayer.Core.Playlist.WatchLaterManager _watchLaterManager = new();
     private readonly SettingsManager _settingsManager = new();
     private readonly NJPlayer.Features.Subtitles.SubtitleService _subtitleService = new();
@@ -233,15 +241,25 @@ public partial class MainWindow : Window
 
         try
         {
-            _playlistManager.LoadFromJson();
+            _videoPlaylistManager.LoadFromJson();
         }
         catch (Exception ex)
         {
             Trace.WriteLine($"[NJPlayer] Could not load playlist.json: {ex.Message}");
         }
 
-        _overlay.AttachPlaylist(_playlistManager);
-        _playlistManager.CurrentItemChanged += PlaylistManager_CurrentItemChanged;
+        try
+        {
+            _musicPlaylistManager.LoadFromJson(GetMusicQueueFilePath());
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[NJPlayer] Could not load music_queue.json: {ex.Message}");
+        }
+
+        _overlay.AttachPlaylist(ActivePlaylistManager);
+        _videoPlaylistManager.CurrentItemChanged += PlaylistManager_CurrentItemChanged;
+        _musicPlaylistManager.CurrentItemChanged += PlaylistManager_CurrentItemChanged;
 
         try
         {
@@ -396,8 +414,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        var isAudio = MediaFormats.IsAudioOnly(filePath);
+        var targetMode = isAudio ? NJPlayer.Core.Playback.PlayerMode.Music : NJPlayer.Core.Playback.PlayerMode.Video;
+
+        if (_currentMode != targetMode)
+        {
+            SwitchPlayerMode(targetMode, targetFileToPlay: filePath);
+            return;
+        }
+
+        LoadMediaFileDirect(filePath);
+    }
+
+    private void LoadMediaFileDirect(string filePath)
+    {
         // Save position of previous file before switching
-        if (!string.IsNullOrEmpty(_currentFilePath))
+        if (!string.IsNullOrEmpty(_currentFilePath) && _player != null)
         {
             _settingsManager.SetResumePosition(_currentFilePath, _player.Position.TotalSeconds, _player.Duration.TotalSeconds);
         }
@@ -440,6 +472,8 @@ public partial class MainWindow : Window
             LyricCurrentText.Text = "♪ Loading lyrics...";
             LyricNextText.Text = string.Empty;
 
+            _overlay?.SetPlayerMode(NJPlayer.Core.Playback.PlayerMode.Music);
+            _overlay?.UpdateVisualizerModeState(false, _settingsManager.Settings.VisualizerType, true);
             LoadAudioModeDetailsAsync(filePath);
         }
         else
@@ -448,18 +482,132 @@ public partial class MainWindow : Window
             MusicHeroSurface.Visibility = Visibility.Collapsed;
             PlayerHost.Visibility = Visibility.Visible;
             EmptyStateOverlay.Visibility = Visibility.Collapsed;
+            _overlay?.SetPlayerMode(NJPlayer.Core.Playback.PlayerMode.Video);
+            _overlay?.UpdateVisualizerModeState(false, _settingsManager.Settings.VisualizerType, false);
         }
 
         try
         {
             ApplyVisualizerFilter("off");
-            _player.Load(filePath, startPaused: false);
+            _player?.Load(filePath, startPaused: false);
             ApplyAudioFilters();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading media file: {ex.Message}", "Playback Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    public void TogglePlayerMode()
+    {
+        var targetMode = (_currentMode == NJPlayer.Core.Playback.PlayerMode.Video)
+            ? NJPlayer.Core.Playback.PlayerMode.Music
+            : NJPlayer.Core.Playback.PlayerMode.Video;
+
+        SwitchPlayerMode(targetMode);
+    }
+
+    public void SwitchPlayerMode(NJPlayer.Core.Playback.PlayerMode newMode, string? targetFileToPlay = null)
+    {
+        if (_currentMode == newMode && targetFileToPlay == null)
+        {
+            return;
+        }
+
+        // 1. Non-interference: Save outgoing state of departing mode
+        if (!string.IsNullOrEmpty(_currentFilePath) && _player != null)
+        {
+            var curPos = _player.Position.TotalSeconds;
+            var curDur = _player.Duration.TotalSeconds;
+            var wasPlaying = !_player.IsPaused;
+
+            if (_currentMode == NJPlayer.Core.Playback.PlayerMode.Music)
+            {
+                _musicState.FilePath = _currentFilePath;
+                _musicState.PositionSeconds = curPos;
+                _musicState.DurationSeconds = curDur;
+                _musicState.WasPlaying = wasPlaying;
+            }
+            else
+            {
+                _videoState.FilePath = _currentFilePath;
+                _videoState.PositionSeconds = curPos;
+                _videoState.DurationSeconds = curDur;
+                _videoState.WasPlaying = wasPlaying;
+            }
+
+            _settingsManager.SetResumePosition(_currentFilePath, curPos, curDur);
+        }
+
+        // 2. Pause/stop outgoing playback to avoid any interference
+        try
+        {
+            _player?.Command("stop");
+            ApplyVisualizerFilter("off");
+        }
+        catch { }
+
+        _currentMode = newMode;
+        _isAudioMode = (newMode == NJPlayer.Core.Playback.PlayerMode.Music);
+        _musicVisualizerActive = false;
+
+        // 3. Update overlay, drawer, and layout
+        _overlay?.SetPlayerMode(newMode);
+        _overlay?.AttachPlaylist(ActivePlaylistManager);
+
+        // 4. If a target file is requested, load it
+        if (!string.IsNullOrWhiteSpace(targetFileToPlay))
+        {
+            LoadMediaFileDirect(targetFileToPlay);
+            return;
+        }
+
+        // 5. Restore previous session position for this mode
+        var incomingState = (newMode == NJPlayer.Core.Playback.PlayerMode.Music) ? _musicState : _videoState;
+        if (!string.IsNullOrEmpty(incomingState.FilePath) && File.Exists(incomingState.FilePath))
+        {
+            _pendingResumePosition = incomingState.PositionSeconds;
+            LoadMediaFileDirect(incomingState.FilePath);
+            _overlay?.ShowToast($"Resumed {newMode} at {TimeSpan.FromSeconds(incomingState.PositionSeconds):mm\\:ss}", "⏱");
+        }
+        else if (ActivePlaylistManager.CurrentItem != null && File.Exists(ActivePlaylistManager.CurrentItem.FilePath))
+        {
+            LoadMediaFileDirect(ActivePlaylistManager.CurrentItem.FilePath);
+        }
+        else
+        {
+            _currentFilePath = null;
+            if (newMode == NJPlayer.Core.Playback.PlayerMode.Music)
+            {
+                PlayerHost.Visibility = Visibility.Collapsed;
+                MusicHeroSurface.Visibility = Visibility.Visible;
+                EmptyStateOverlay.Visibility = Visibility.Collapsed;
+                MusicTitleText.Text = "NJ Music Player";
+                MusicArtistAlbumText.Text = "Drop audio files here or press Ctrl+O";
+                MusicQualityBadgeText.Text = "MUSIC";
+                AlbumArtImage.Source = null;
+                AlbumArtPlaceholder.Visibility = Visibility.Visible;
+                LyricPrevText.Text = string.Empty;
+                LyricCurrentText.Text = "♪ No track playing";
+                LyricNextText.Text = string.Empty;
+                _overlay?.UpdateTitle("NJ Music Player", string.Empty);
+            }
+            else
+            {
+                MusicHeroSurface.Visibility = Visibility.Collapsed;
+                PlayerHost.Visibility = Visibility.Collapsed;
+                EmptyStateOverlay.Visibility = Visibility.Visible;
+                _overlay?.UpdateTitle("NJ Player", string.Empty);
+            }
+        }
+    }
+
+    private static string GetMusicQueueFilePath()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var dir = Path.Combine(appData, "NJPlayer");
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "music_queue.json");
     }
 
     private async void LoadAudioModeDetailsAsync(string filePath)
@@ -1241,6 +1389,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Ctrl+M toggles Player Mode (Video <-> Music)
+        if (key == Key.M && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            TogglePlayerMode();
+            e.Handled = true;
+            return;
+        }
+
         var modifiers = new List<string>();
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) modifiers.Add("Ctrl");
         if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift) modifiers.Add("Shift");
@@ -1633,11 +1789,12 @@ public partial class MainWindow : Window
 
         try
         {
-            _playlistManager.SaveToJson();
+            _videoPlaylistManager.SaveToJson();
+            _musicPlaylistManager.SaveToJson(GetMusicQueueFilePath());
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[NJPlayer] Could not save playlist.json: {ex.Message}");
+            Trace.WriteLine($"[NJPlayer] Could not save playlists: {ex.Message}");
         }
 
         _overlay?.Close();

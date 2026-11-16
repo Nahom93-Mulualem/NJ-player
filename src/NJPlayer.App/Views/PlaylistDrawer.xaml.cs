@@ -55,6 +55,22 @@ public partial class PlaylistDrawer : UserControl
         UpdateActiveItemVisuals();
     }
 
+    public void SetMode(NJPlayer.Core.Playback.PlayerMode mode)
+    {
+        if (mode == NJPlayer.Core.Playback.PlayerMode.Music)
+        {
+            PlaylistTabBtn.Content = "🎵 Music Queue";
+            SearchPlaceholder.Text = "🔍 Search music queue...";
+            WatchLaterTabBtn.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            PlaylistTabBtn.Content = "📋 Playlist";
+            SearchPlaceholder.Text = "🔍 Search playlist...";
+            WatchLaterTabBtn.Visibility = Visibility.Visible;
+        }
+    }
+
     public void AttachWatchLater(WatchLaterManager watchLaterManager)
     {
         _watchLaterManager = watchLaterManager ?? throw new ArgumentNullException(nameof(watchLaterManager));

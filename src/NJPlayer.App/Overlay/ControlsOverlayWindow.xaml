@@ -36,10 +36,20 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- App Icon & Title -->
+                <!-- App Icon & Title + Mode Switcher -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,8,0">
                     <Image Source="../Assets/app_16x16.png" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="NJ Player" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="NJ Player" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                    <!-- Mode Switcher Pill (Video / Music) -->
+                    <Button x:Name="ModeSwitcherButton" Style="{StaticResource CaptionButtonStyle}" ToolTip="Switch Player Mode (Ctrl+M)" Click="ModeSwitcher_Click" Width="Auto" Height="26" Padding="6,0">
+                        <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="6,2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="ModeIcon" Text="🎬" FontSize="11" Margin="0,0,4,0"/>
+                                <TextBlock x:Name="ModeText" Text="VIDEO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
                 </StackPanel>
 
                 <!-- Media Title -->

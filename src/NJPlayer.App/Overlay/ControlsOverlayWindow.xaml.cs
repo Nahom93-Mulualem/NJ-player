@@ -601,6 +601,40 @@ public partial class ControlsOverlayWindow : Window
         SyncWithMainWindow();
     }
 
+    public void SetPlayerMode(NJPlayer.Core.Playback.PlayerMode mode)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (mode == NJPlayer.Core.Playback.PlayerMode.Music)
+            {
+                ModeIcon.Text = "🎵";
+                ModeText.Text = "MUSIC";
+                SubtitleButton.Visibility = Visibility.Collapsed;
+                PlaylistIcon.Text = "🎵";
+                PlaylistButton.ToolTip = "Music Queue (Ctrl+L)";
+                VisualizerToggleBtn.Visibility = Visibility.Visible;
+                Drawer.SetMode(NJPlayer.Core.Playback.PlayerMode.Music);
+            }
+            else
+            {
+                ModeIcon.Text = "🎬";
+                ModeText.Text = "VIDEO";
+                SubtitleButton.Visibility = Visibility.Visible;
+                PlaylistIcon.Text = "📋";
+                PlaylistButton.ToolTip = "Playlist (Ctrl+L)";
+                VisualizerToggleBtn.Visibility = Visibility.Collapsed;
+                VisualizerFloatingControls.Visibility = Visibility.Collapsed;
+                Drawer.SetMode(NJPlayer.Core.Playback.PlayerMode.Video);
+            }
+        });
+    }
+
+    private void ModeSwitcher_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.TogglePlayerMode();
+        ShowControls();
+    }
+
     public void UpdateVisualizerModeState(bool isVisualizerActive, string currentType, bool isMusicMode)
     {
         Dispatcher.InvokeAsync(() =>
