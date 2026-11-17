@@ -164,5 +164,75 @@ public class PlaylistTests
             }
         }
     }
+
+    [Fact]
+    public void PlaylistManager_IsSupportedMediaFile_IdentifiesSupportedFormats()
+    {
+        Assert.True(PlaylistManager.IsSupportedMediaFile("video.mp4"));
+        Assert.True(PlaylistManager.IsSupportedMediaFile("movie.mkv"));
+        Assert.True(PlaylistManager.IsSupportedMediaFile("track.mp3"));
+        Assert.True(PlaylistManager.IsSupportedMediaFile("album.flac"));
+        Assert.True(PlaylistManager.IsSupportedMediaFile("song.opus"));
+        Assert.True(PlaylistManager.IsSupportedMediaFile("c:\\folder\\audio.wav"));
+
+        Assert.False(PlaylistManager.IsSupportedMediaFile("document.pdf"));
+        Assert.False(PlaylistManager.IsSupportedMediaFile("image.jpg"));
+        Assert.False(PlaylistManager.IsSupportedMediaFile(""));
+    }
+
+    [Fact]
+    public void LocalMediaBrowserService_GetDrivesAndQuickPlaces_ReturnsValidLists()
+    {
+        var browser = new LocalMediaBrowserService();
+        var drives = browser.GetDrives();
+        Assert.NotNull(drives);
+        Assert.NotEmpty(drives);
+
+        var quickPlaces = browser.GetQuickPlaces();
+        Assert.NotNull(quickPlaces);
+        Assert.NotEmpty(quickPlaces);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task LocalMediaBrowserService_EnumerateDirectoryAsync_FiltersMediaFiles()
+    {
+        var browser = new LocalMediaBrowserService();
+        var tempDir = Path.Combine(Path.GetTempPath(), "njplayer_test_browser_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        var subDir = Path.Combine(tempDir, "SubFolder");
+        Directory.CreateDirectory(subDir);
+
+        var videoFile = Path.Combine(tempDir, "test_video.mp4");
+        var audioFile = Path.Combine(tempDir, "test_song.mp3");
+        var textFile = Path.Combine(tempDir, "notes.txt");
+
+        File.WriteAllText(videoFile, "fake video");
+        File.WriteAllText(audioFile, "fake audio");
+        File.WriteAllText(textFile, "some text");
+
+        try
+        {
+            var items = await browser.EnumerateDirectoryAsync(tempDir);
+            Assert.NotNull(items);
+            Assert.Equal(3, items.Count); // 1 directory + 2 media files (notes.txt excluded)
+
+            var dirItem = Assert.Single(items, i => i.IsDirectory);
+            Assert.Equal("SubFolder", dirItem.Name);
+
+            var videoItem = Assert.Single(items, i => i.IsVideo);
+            Assert.Equal("test_video.mp4", videoItem.Name);
+
+            var audioItem = Assert.Single(items, i => i.IsAudio);
+            Assert.Equal("test_song.mp3", audioItem.Name);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
 }
 

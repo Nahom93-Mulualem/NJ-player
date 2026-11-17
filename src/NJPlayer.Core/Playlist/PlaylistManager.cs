@@ -14,11 +14,18 @@ namespace NJPlayer.Core.Playlist;
 /// </summary>
 public sealed class PlaylistManager
 {
-    private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".wmv", ".ts", ".m4v",
-        ".mp3", ".flac", ".wav", ".m4a", ".opus", ".ogg", ".aac", ".wma"
+        ".mp3", ".flac", ".wav", ".m4a", ".opus", ".ogg", ".aac", ".wma", ".alac", ".aiff", ".ape"
     };
+
+    public static bool IsSupportedMediaFile(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var ext = Path.GetExtension(path);
+        return SupportedExtensions.Contains(ext);
+    }
 
     private readonly ObservableCollection<PlaylistItem> _items = new();
     private readonly Random _random = new();

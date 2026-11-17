@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Direct PC File/Folder Browser & In-Drawer Media Explorer (Section 2)**:
+  - Added integrated **`📁 Browse PC`** tab directly inside `PlaylistDrawer` with fast asynchronous directory scanning.
+  - Quick-access shortcuts for standard system media locations (`Music`, `Videos`, `Downloads`, `Desktop`) and ready storage drives (`C:\`, `D:\`).
+  - Interactive breadcrumb navigation with parent directory level-up (`⬆`), live refresh (`🔄`), and path entry box.
+  - File list displaying directories (`📁`) and supported video (`🎬`) and audio (`🎵`) formats with formatted sizes.
+  - Double-click navigation for directories and instant playback for media files, with item context menus (`▶ Play Now`, `➕ Add to Playlist`, `⏱ Add to Watch Later`, `📁 Show in Explorer`).
+  - Added `"➕ Add All in Folder to Playlist"` footer button for batch importing entire directory trees in one click.
+  - Added dedicated `+ Add Files` and `+ Add Folder` buttons and right-click context menu options in the Playlist view.
 - **yt-dlp Download Stop/Cancel & Merged Audio/Video Quality Presets (Section 1)**:
   - Added dedicated `"⏹ Stop Download"` button in the downloader dialog that immediately terminates the active yt-dlp process tree.
   - Automatic cleanup of leftover `.part`, `.ytdl`, and temporary fragments upon cancellation so partial junk is never left behind.

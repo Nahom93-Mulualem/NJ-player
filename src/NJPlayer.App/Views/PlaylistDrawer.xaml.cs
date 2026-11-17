@@ -18,7 +18,10 @@ public partial class PlaylistDrawer : UserControl
 {
     private PlaylistManager? _manager;
     private WatchLaterManager? _watchLaterManager;
+    private readonly LocalMediaBrowserService _browserService = new();
+    private string _currentBrowsePath = string.Empty;
     private bool _isOpen = false;
+    private int _activeTabIndex = 0; // 0: Playlist, 1: Browse PC, 2: Watch Later
     private bool _isWatchLaterTab = false;
     private ICollectionView? _filteredView;
     private Point _dragStartPoint;
@@ -39,6 +42,8 @@ public partial class PlaylistDrawer : UserControl
         var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
         _openAnimation = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easing };
         _closeAnimation = new DoubleAnimation(340.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easing };
+
+        InitQuickPlaces();
     }
 
     public void AttachManager(PlaylistManager manager)
@@ -55,8 +60,11 @@ public partial class PlaylistDrawer : UserControl
         UpdateActiveItemVisuals();
     }
 
+    private NJPlayer.Core.Playback.PlayerMode _currentMode = NJPlayer.Core.Playback.PlayerMode.Video;
+
     public void SetMode(NJPlayer.Core.Playback.PlayerMode mode)
     {
+        _currentMode = mode;
         if (mode == NJPlayer.Core.Playback.PlayerMode.Music)
         {
             PlaylistTabBtn.Content = "🎵 Music Queue";
@@ -110,49 +118,271 @@ public partial class PlaylistDrawer : UserControl
         DrawerTransform.BeginAnimation(TranslateTransform.XProperty, anim);
     }
 
-    // --- Tab Switching ---
+    // --- Tab Switching & PC Browser ---
+
+    private void InitQuickPlaces()
+    {
+        QuickPlacesCombo.Items.Clear();
+        foreach (var place in _browserService.GetQuickPlaces())
+        {
+            QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = $"📁 {place.Name}", Tag = place.Path });
+        }
+        foreach (var drive in _browserService.GetDrives())
+        {
+            QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = $"💾 {drive.Name}", Tag = drive.Path });
+        }
+    }
+
+    private void SetActiveTab(int tabIndex)
+    {
+        _activeTabIndex = tabIndex;
+        _isWatchLaterTab = (tabIndex == 2);
+
+        var activeBrush = (Brush)FindResource("SurfaceRaisedBrush");
+        var accentBrush = (Brush)FindResource("AccentBrush");
+        var mutedBrush = (Brush)FindResource("TextMutedBrush");
+
+        PlaylistTabBtn.Background = tabIndex == 0 ? activeBrush : Brushes.Transparent;
+        PlaylistTabBtn.Foreground = tabIndex == 0 ? accentBrush : mutedBrush;
+        PlaylistTabBtn.BorderBrush = tabIndex == 0 ? accentBrush : Brushes.Transparent;
+
+        BrowsePcTabBtn.Background = tabIndex == 1 ? activeBrush : Brushes.Transparent;
+        BrowsePcTabBtn.Foreground = tabIndex == 1 ? accentBrush : mutedBrush;
+        BrowsePcTabBtn.BorderBrush = tabIndex == 1 ? accentBrush : Brushes.Transparent;
+
+        WatchLaterTabBtn.Background = tabIndex == 2 ? activeBrush : Brushes.Transparent;
+        WatchLaterTabBtn.Foreground = tabIndex == 2 ? accentBrush : mutedBrush;
+        WatchLaterTabBtn.BorderBrush = tabIndex == 2 ? accentBrush : Brushes.Transparent;
+
+        PlaylistHeaderPanel.Visibility = tabIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PcBrowserHeaderBar.Visibility = tabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        WatchLaterActionBar.Visibility = tabIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+        PlaylistListBox.Visibility = tabIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PcBrowserListBox.Visibility = tabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        WatchLaterListBox.Visibility = tabIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+        PlaylistFooter.Visibility = tabIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PcBrowserFooter.Visibility = tabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        WatchLaterFooter.Visibility = tabIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+        if (tabIndex == 1 && string.IsNullOrEmpty(_currentBrowsePath))
+        {
+            var preferredFolder = _currentMode == NJPlayer.Core.Playback.PlayerMode.Music
+                ? Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+
+            if (string.IsNullOrEmpty(preferredFolder) || !Directory.Exists(preferredFolder))
+            {
+                preferredFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            }
+            _ = NavigateToFolderAsync(preferredFolder);
+        }
+        else if (tabIndex == 2)
+        {
+            UpdateWatchLaterCount();
+        }
+    }
 
     private void PlaylistTab_Click(object sender, RoutedEventArgs e)
     {
-        _isWatchLaterTab = false;
-        PlaylistTabBtn.Background = (Brush)FindResource("SurfaceRaisedBrush");
-        PlaylistTabBtn.Foreground = (Brush)FindResource("AccentBrush");
-        PlaylistTabBtn.BorderBrush = (Brush)FindResource("AccentBrush");
+        SetActiveTab(0);
+    }
 
-        WatchLaterTabBtn.Background = Brushes.Transparent;
-        WatchLaterTabBtn.Foreground = (Brush)FindResource("TextMutedBrush");
-        WatchLaterTabBtn.BorderBrush = Brushes.Transparent;
-
-        SearchBorder.Visibility = Visibility.Visible;
-        WatchLaterActionBar.Visibility = Visibility.Collapsed;
-
-        PlaylistListBox.Visibility = Visibility.Visible;
-        WatchLaterListBox.Visibility = Visibility.Collapsed;
-
-        PlaylistFooter.Visibility = Visibility.Visible;
-        WatchLaterFooter.Visibility = Visibility.Collapsed;
+    private void BrowsePcTab_Click(object sender, RoutedEventArgs e)
+    {
+        SetActiveTab(1);
     }
 
     private void WatchLaterTab_Click(object sender, RoutedEventArgs e)
     {
-        _isWatchLaterTab = true;
-        WatchLaterTabBtn.Background = (Brush)FindResource("SurfaceRaisedBrush");
-        WatchLaterTabBtn.Foreground = (Brush)FindResource("AccentBrush");
-        WatchLaterTabBtn.BorderBrush = (Brush)FindResource("AccentBrush");
+        SetActiveTab(2);
+    }
 
-        PlaylistTabBtn.Background = Brushes.Transparent;
-        PlaylistTabBtn.Foreground = (Brush)FindResource("TextMutedBrush");
-        PlaylistTabBtn.BorderBrush = Brushes.Transparent;
+    public async Task NavigateToFolderAsync(string folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath)) return;
 
-        SearchBorder.Visibility = Visibility.Collapsed;
-        WatchLaterActionBar.Visibility = Visibility.Visible;
+        try
+        {
+            _currentBrowsePath = folderPath;
+            CurrentPathTextBox.Text = folderPath;
 
-        PlaylistListBox.Visibility = Visibility.Collapsed;
-        WatchLaterListBox.Visibility = Visibility.Visible;
+            var items = await _browserService.EnumerateDirectoryAsync(folderPath);
+            PcBrowserListBox.ItemsSource = items;
 
-        PlaylistFooter.Visibility = Visibility.Collapsed;
-        WatchLaterFooter.Visibility = Visibility.Visible;
-        UpdateWatchLaterCount();
+            var mediaCount = items.Count(i => !i.IsDirectory);
+            var folderCount = items.Count(i => i.IsDirectory);
+            PcBrowserCountText.Text = $"{folderCount} folders, {mediaCount} media files";
+        }
+        catch (Exception ex)
+        {
+            PcBrowserCountText.Text = $"Error: {ex.Message}";
+        }
+    }
+
+    private async void PcBrowserListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item)
+        {
+            if (item.IsDirectory)
+            {
+                await NavigateToFolderAsync(item.FullPath);
+            }
+            else
+            {
+                // Play media directly
+                MediaPathRequested?.Invoke(item.FullPath);
+            }
+        }
+    }
+
+    private void MenuPcBrowserPlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item && !item.IsDirectory)
+        {
+            MediaPathRequested?.Invoke(item.FullPath);
+        }
+    }
+
+    private void MenuPcBrowserAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item && _manager != null)
+        {
+            if (item.IsDirectory)
+            {
+                var added = _manager.AddFolder(item.FullPath, recursive: true);
+                MessageBox.Show($"Added {added} media files to playlist.", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                _manager.AddFile(item.FullPath);
+            }
+        }
+    }
+
+    private void MenuPcBrowserWatchLater_Click(object sender, RoutedEventArgs e)
+    {
+        if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item && _watchLaterManager != null)
+        {
+            if (item.IsDirectory)
+            {
+                _watchLaterManager.AddFolder(item.FullPath, recursive: true);
+            }
+            else
+            {
+                _watchLaterManager.Add(item.FullPath);
+            }
+        }
+    }
+
+    private void MenuPcBrowserShowInFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item)
+        {
+            try
+            {
+                Process.Start("explorer.exe", item.IsDirectory ? $"\"{item.FullPath}\"" : $"/select,\"{item.FullPath}\"");
+            }
+            catch { }
+        }
+    }
+
+    private async void BrowseUp_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_currentBrowsePath)) return;
+        var parent = Directory.GetParent(_currentBrowsePath);
+        if (parent != null)
+        {
+            await NavigateToFolderAsync(parent.FullName);
+        }
+    }
+
+    private async void BrowseRefresh_Click(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(_currentBrowsePath))
+        {
+            await NavigateToFolderAsync(_currentBrowsePath);
+        }
+    }
+
+    private async void CurrentPathTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            var path = CurrentPathTextBox.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+            {
+                await NavigateToFolderAsync(path);
+            }
+        }
+    }
+
+    private async void QuickPlacesCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (QuickPlacesCombo.SelectedItem is ComboBoxItem item && item.Tag is string path && Directory.Exists(path))
+        {
+            await NavigateToFolderAsync(path);
+        }
+    }
+
+    private void AddCurrentFolderToPlaylist_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_currentBrowsePath) || !Directory.Exists(_currentBrowsePath) || _manager == null) return;
+
+        var added = _manager.AddFolder(_currentBrowsePath, recursive: false);
+        MessageBox.Show($"Added {added} media files to the playlist.", "PC Browser - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    // --- Playlist Quick Actions (+ Add Files, + Add Folder, Clear) ---
+
+    private void AddFiles_Click(object sender, RoutedEventArgs e)
+    {
+        var ofd = new OpenFileDialog
+        {
+            Title = "Select Media Files to Add - NJ Player",
+            Filter = "Media Files|*.mp4;*.mkv;*.avi;*.mov;*.webm;*.flv;*.wmv;*.ts;*.m4v;*.mp3;*.flac;*.wav;*.m4a;*.opus;*.ogg;*.aac;*.wma;*.alac;*.aiff;*.ape|All Files (*.*)|*.*",
+            Multiselect = true
+        };
+
+        if (ofd.ShowDialog() == true && _manager != null)
+        {
+            int added = 0;
+            foreach (var file in ofd.FileNames)
+            {
+                _manager.AddFile(file);
+                added++;
+            }
+        }
+    }
+
+    private void AddFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Select Media Folder to Add - NJ Player"
+        };
+
+        if (dialog.ShowDialog() == true && _manager != null)
+        {
+            _manager.AddFolder(dialog.FolderName, recursive: true);
+        }
+    }
+
+    private void ClearPlaylist_Click(object sender, RoutedEventArgs e)
+    {
+        if (_manager == null || _manager.Items.Count == 0) return;
+
+        var res = MessageBox.Show(
+            "Are you sure you want to clear the playlist?",
+            "Clear Playlist - NJ Player",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (res == MessageBoxResult.Yes)
+        {
+            _manager.Clear();
+        }
     }
 
     private void UpdateWatchLaterCount()
