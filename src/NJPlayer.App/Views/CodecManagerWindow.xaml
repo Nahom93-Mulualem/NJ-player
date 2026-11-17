@@ -90,6 +90,9 @@
                                     <TextBlock Text="✓ VP9 / VP8" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
                                 </Border>
                                 <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                    <TextBlock Text="✓ MPEG-4 / DivX / Xvid (DXVA)" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
+                                </Border>
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
                                     <TextBlock Text="✓ MPEG-2 / VC-1" FontSize="11" Foreground="{StaticResource SuccessBrush}" />
                                 </Border>
                                 <Border Background="{StaticResource SurfaceRaisedBrush}" CornerRadius="{StaticResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
@@ -123,14 +126,18 @@
                         <StackPanel>
                             <!-- Hardware Decoder API -->
                             <TextBlock Text="Hardware Acceleration (GPU):" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,4" />
-                            <ComboBox x:Name="HwdecCombo" Height="30" Margin="0,0,0,12" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}">
+                            <ComboBox x:Name="HwdecCombo" Height="30" Margin="0,0,0,10" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource BorderBrush}">
                                 <ComboBoxItem Content="auto-safe (Direct3D 11 / NVDEC Recommended)" Tag="auto-safe" IsSelected="True" />
                                 <ComboBoxItem Content="d3d11va (Direct3D 11 Hardware Decoding)" Tag="d3d11va" />
+                                <ComboBoxItem Content="dxva2 (DirectX Video Acceleration 2 / DXVA)" Tag="dxva2" />
                                 <ComboBoxItem Content="nvdec (NVIDIA PureVideo / CUDA)" Tag="nvdec" />
                                 <ComboBoxItem Content="qsv (Intel QuickSync Video)" Tag="qsv" />
                                 <ComboBoxItem Content="vulkan (Vulkan Video Decode API)" Tag="vulkan" />
                                 <ComboBoxItem Content="no (Software Decoding Only)" Tag="no" />
                             </ComboBox>
+
+                            <!-- MPEG-4 DXVA Acceleration Toggle -->
+                            <CheckBox x:Name="Mpeg4DxvaCheckBox" Content="Enable MPEG-4 DXVA Hardware Acceleration (DivX, Xvid, MPEG-4 Part 2)" IsChecked="True" Foreground="{StaticResource TextBrush}" FontSize="12" Margin="0,0,0,12" Cursor="Hand" />
 
                             <!-- OpenCodec Video Decoder Priority -->
                             <TextBlock Text="OpenCodec Video Decoder Priority (vd):" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,4" />

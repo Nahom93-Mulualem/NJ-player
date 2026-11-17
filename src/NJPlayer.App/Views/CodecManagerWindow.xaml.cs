@@ -58,6 +58,7 @@ public partial class CodecManagerWindow : Window
         VideoDecoderPriorityBox.Text = string.IsNullOrWhiteSpace(s.VideoDecoderPriority) ? "auto" : s.VideoDecoderPriority;
         AudioDecoderPriorityBox.Text = string.IsNullOrWhiteSpace(s.AudioDecoderPriority) ? "auto" : s.AudioDecoderPriority;
         CustomLavcBox.Text = s.CustomLavcOptions ?? string.Empty;
+        Mpeg4DxvaCheckBox.IsChecked = s.EnableMpeg4Dxva;
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -79,6 +80,13 @@ public partial class CodecManagerWindow : Window
             {
                 _player.SetPropertyString("hwdec", hwdec);
             }
+        }
+
+        s.EnableMpeg4Dxva = Mpeg4DxvaCheckBox.IsChecked == true;
+        s.HwdecCodecs = s.EnableMpeg4Dxva ? "all" : "h264,vc1,wmv3,hevc";
+        if (_player != null && _player.Duration > TimeSpan.Zero)
+        {
+            _player.SetPropertyString("hwdec-codecs", s.HwdecCodecs);
         }
 
         s.VideoDecoderPriority = VideoDecoderPriorityBox.Text.Trim();

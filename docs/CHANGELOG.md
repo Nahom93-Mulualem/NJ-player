@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **MPEG-4 DXVA Hardware Acceleration Support (Section 4)**:
+  - Enabled full GPU hardware acceleration for MPEG-4 Part 2 / ASP (DivX, Xvid), MPEG-2, and modern codecs by passing `hwdec-codecs=all` to libmpv.
+  - Added dedicated DirectX Video Acceleration 2 (`dxva2`) alongside Direct3D 11 (`d3d11va`) in Hardware Acceleration selectors.
+  - Added `"Enable MPEG-4 DXVA Hardware Acceleration"` setting toggle in both Codec Management and General Settings windows.
+  - Updated Codec Management Inspector with MPEG-4 / DivX / Xvid (DXVA Accelerated) capability badge and runtime dynamic codec update.
 - **Smooth 60 FPS & Mesmerizing Audio Visualizers (Section 3)**:
   - Upgraded all visualizer engines to silky-smooth 60 fps rendering.
   - **Dynamic Frequency Bars (`showfreqs`)**: Upgraded with cubic root response scale (`ascale=cbrt`), 3-frame fluid temporal averaging (`averaging=3`), and 4-tier electric cyan/emerald neon gradient (`0x00E5FF|0x5CF0FF|0x3DDC97|0x00E5FF`).

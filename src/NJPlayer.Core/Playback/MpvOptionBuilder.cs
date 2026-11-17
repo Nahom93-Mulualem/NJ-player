@@ -17,7 +17,7 @@ public sealed class MpvOptionBuilder
         WithKeepOpen(true);
         WithIdle(true);
         WithTerminal(false);
-        WithHardwareDecoding("auto-safe");
+        WithHardwareDecoding("auto-safe", "all");
         WithNetworkDefaults();
     }
 
@@ -36,9 +36,11 @@ public sealed class MpvOptionBuilder
         return this;
     }
 
-    public MpvOptionBuilder WithHardwareDecoding(string hwdec = "auto-safe")
+    public MpvOptionBuilder WithHardwareDecoding(string hwdec = "auto-safe", string hwdecCodecs = "all")
     {
-        return WithOption("hwdec", hwdec);
+        WithOption("hwdec", hwdec);
+        WithOption("hwdec-codecs", hwdecCodecs);
+        return this;
     }
 
     public MpvOptionBuilder WithKeepOpen(bool keepOpen = true)

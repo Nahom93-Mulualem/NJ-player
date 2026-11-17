@@ -330,11 +330,12 @@ public partial class MainWindow : Window
         try
         {
             var hwdec = _settingsManager.Settings.HardwareDecoder;
+            var hwdecCodecs = _settingsManager.Settings.EnableMpeg4Dxva ? "all" : (_settingsManager.Settings.HwdecCodecs ?? "all");
             _player = new MpvPlayer();
             _player.Initialize(options =>
             {
                 options.WithWindowHandle(PlayerHost.Hwnd);
-                options.WithHardwareDecoding(string.IsNullOrWhiteSpace(hwdec) ? "auto-safe" : hwdec);
+                options.WithHardwareDecoding(string.IsNullOrWhiteSpace(hwdec) ? "auto-safe" : hwdec, hwdecCodecs);
                 if (!string.IsNullOrWhiteSpace(_settingsManager.Settings.VideoDecoderPriority) &&
                     !string.Equals(_settingsManager.Settings.VideoDecoderPriority, "auto", StringComparison.OrdinalIgnoreCase))
                 {

@@ -57,18 +57,28 @@
 
                     <!-- Hardware Decoding Selector -->
                     <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,10" Margin="0,0,0,16">
-                        <Grid>
-                            <StackPanel>
-                                <TextBlock Text="Hardware Acceleration (hwdec)" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
-                                <TextBlock Text="GPU decoding method passed to libmpv." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
-                            </StackPanel>
-                            <ComboBox x:Name="HwdecCombo" HorizontalAlignment="Right" VerticalAlignment="Center" Width="190">
-                                <ComboBoxItem Content="auto-safe (Recommended)" IsSelected="True" Tag="auto-safe" />
-                                <ComboBoxItem Content="d3d11va (Direct3D 11)" Tag="d3d11va" />
-                                <ComboBoxItem Content="nvdec (NVIDIA)" Tag="nvdec" />
-                                <ComboBoxItem Content="no (Software Only)" Tag="no" />
-                            </ComboBox>
-                        </Grid>
+                        <StackPanel>
+                            <Grid Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Hardware Acceleration (hwdec)" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock Text="GPU decoding method passed to libmpv." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <ComboBox x:Name="HwdecCombo" HorizontalAlignment="Right" VerticalAlignment="Center" Width="210">
+                                    <ComboBoxItem Content="auto-safe (Recommended)" IsSelected="True" Tag="auto-safe" />
+                                    <ComboBoxItem Content="d3d11va (Direct3D 11 DXVA)" Tag="d3d11va" />
+                                    <ComboBoxItem Content="dxva2 (DirectX Video Acceleration 2)" Tag="dxva2" />
+                                    <ComboBoxItem Content="nvdec (NVIDIA)" Tag="nvdec" />
+                                    <ComboBoxItem Content="no (Software Only)" Tag="no" />
+                                </ComboBox>
+                            </Grid>
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="MPEG-4 DXVA Hardware Acceleration" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock Text="Hardware decode DivX, Xvid, and MPEG-4 Part 2 via Windows DXVA/GPU." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <CheckBox x:Name="Mpeg4DxvaCheckBox" HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Hand" IsChecked="True" />
+                            </Grid>
+                        </StackPanel>
                     </Border>
 
                     <!-- Section 2: Window & Environment -->

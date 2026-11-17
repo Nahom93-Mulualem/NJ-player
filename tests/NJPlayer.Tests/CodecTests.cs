@@ -20,6 +20,7 @@ public class CodecTests
 
     [Theory]
     [InlineData("d3d11va", true)]
+    [InlineData("dxva2", true)]
     [InlineData("nvdec", true)]
     [InlineData("qsv", true)]
     [InlineData("vulkan", true)]
@@ -34,6 +35,25 @@ public class CodecTests
         };
 
         Assert.Equal(expectedAcc, info.IsHardwareAccelerated);
+    }
+
+    [Fact]
+    public void AppSettings_Mpeg4DxvaDefaults_AreSetCorrectly()
+    {
+        var settings = new AppSettings();
+        Assert.True(settings.EnableMpeg4Dxva);
+        Assert.Equal("all", settings.HwdecCodecs);
+    }
+
+    [Fact]
+    public void MpvOptionBuilder_HardwareDecoding_ConfiguresHwdecAndHwdecCodecs()
+    {
+        var builder = new MpvOptionBuilder();
+        builder.WithHardwareDecoding("dxva2", "all");
+        var options = builder.Build();
+
+        Assert.Equal("dxva2", options["hwdec"]);
+        Assert.Equal("all", options["hwdec-codecs"]);
     }
 }
 

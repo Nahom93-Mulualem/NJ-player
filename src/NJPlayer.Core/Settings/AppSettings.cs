@@ -40,4 +40,6 @@ public sealed class AppSettings
     public string VideoDecoderPriority { get; set; } = "auto";
     public string AudioDecoderPriority { get; set; } = "auto";
     public string CustomLavcOptions { get; set; } = string.Empty;
+    public bool EnableMpeg4Dxva { get; set; } = true;
+    public string HwdecCodecs { get; set; } = "all";
 }

@@ -24,6 +24,7 @@ public partial class SettingsWindow : Window
 
         ResumeCheckBox.IsChecked = s.ResumePlayback;
         RememberBoundsCheckBox.IsChecked = s.RememberWindowPosition;
+        Mpeg4DxvaCheckBox.IsChecked = s.EnableMpeg4Dxva;
 
         foreach (ComboBoxItem item in HwdecCombo.Items)
         {
@@ -131,6 +132,8 @@ public partial class SettingsWindow : Window
         var s = _settingsManager.Settings;
         s.ResumePlayback = ResumeCheckBox.IsChecked == true;
         s.RememberWindowPosition = RememberBoundsCheckBox.IsChecked == true;
+        s.EnableMpeg4Dxva = Mpeg4DxvaCheckBox.IsChecked == true;
+        s.HwdecCodecs = s.EnableMpeg4Dxva ? "all" : "h264,vc1,wmv3,hevc";
 
         if (HwdecCombo.SelectedItem is ComboBoxItem selected)
         {
