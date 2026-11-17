@@ -90,5 +90,57 @@ public class TrimmerAndDownloaderTests
         // May be null if not yet downloaded into libs/, but method must never throw unhandled exception
         Assert.True(path == null || path.EndsWith("yt-dlp.exe", StringComparison.OrdinalIgnoreCase));
     }
-}
 
+    [Theory]
+    [InlineData(DownloadFormatPreset.BestAvailable)]
+    [InlineData(DownloadFormatPreset.Max2160p_4K)]
+    [InlineData(DownloadFormatPreset.Max1440p_2K)]
+    [InlineData(DownloadFormatPreset.Max1080p)]
+    [InlineData(DownloadFormatPreset.Max720p)]
+    [InlineData(DownloadFormatPreset.Max480p)]
+    [InlineData(DownloadFormatPreset.Max360p)]
+    [InlineData(DownloadFormatPreset.AudioOnlyMp3)]
+    [InlineData(DownloadFormatPreset.AudioOnlyM4a)]
+    [InlineData(DownloadFormatPreset.AudioOnlyFlac)]
+    [InlineData(DownloadFormatPreset.AudioOnlyBest)]
+    public void DownloadOptions_SupportsAllFormatPresets(DownloadFormatPreset preset)
+    {
+        var options = new DownloadOptions
+        {
+            Url = "https://example.com/video",
+            Format = preset
+        };
+
+        options.Validate();
+        Assert.Equal(preset, options.Format);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task MediaDownloaderService_DownloadAsync_HandlesPreCancelledToken()
+    {
+        var downloader = new MediaDownloaderService();
+        using var cts = new System.Threading.CancellationTokenSource();
+        cts.Cancel();
+
+        var options = new DownloadOptions
+        {
+            Url = "https://example.com/stream",
+            Format = DownloadFormatPreset.Max1080p
+        };
+
+        if (downloader.IsYtDlpAvailable)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            {
+                await downloader.DownloadAsync(options, ct: cts.Token);
+            });
+        }
+        else
+        {
+            await Assert.ThrowsAsync<System.IO.FileNotFoundException>(async () =>
+            {
+                await downloader.DownloadAsync(options, ct: cts.Token);
+            });
+        }
+    }
+}

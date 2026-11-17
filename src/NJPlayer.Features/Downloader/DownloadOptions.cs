@@ -6,9 +6,15 @@ namespace NJPlayer.Features.Downloader;
 public enum DownloadFormatPreset
 {
     BestAvailable = 0,
+    Max2160p_4K,
+    Max1440p_2K,
     Max1080p,
     Max720p,
+    Max480p,
+    Max360p,
     AudioOnlyMp3,
+    AudioOnlyM4a,
+    AudioOnlyFlac,
     AudioOnlyBest
 }
 

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **yt-dlp Download Stop/Cancel & Merged Audio/Video Quality Presets (Section 1)**:
+  - Added dedicated `"⏹ Stop Download"` button in the downloader dialog that immediately terminates the active yt-dlp process tree.
+  - Automatic cleanup of leftover `.part`, `.ytdl`, and temporary fragments upon cancellation so partial junk is never left behind.
+  - Smooth progress bar reset and clear user notification `"Download stopped by user."` with immediate re-enablement of the Download button and no error alerts.
+  - Added full merged video + audio quality selector: Best Available, 4K Ultra HD (2160p), 2K Quad HD (1440p), 1080p Full HD, 720p HD, 480p SD, 360p, and Audio-only options (MP3, M4A/AAC, FLAC Lossless, Original Stream).
+  - Automatically locates `ffmpeg.exe` via `ExternalToolLocator` and provides `--ffmpeg-location` and `--merge-output-format mp4` to yt-dlp for seamless high-resolution stream remuxing.
 - **Windows Explorer Context Menu & Standalone Trimmer Mode (Section 3)**:
   - Added user-level context menu entry `"Trim with NJ Player"` registered under `HKCU\Software\Classes\*\shell\NJPlayer.Trim` (no UAC admin required).
   - Install and uninstall toggle accessible from both the Trimmer dialog and General Settings.

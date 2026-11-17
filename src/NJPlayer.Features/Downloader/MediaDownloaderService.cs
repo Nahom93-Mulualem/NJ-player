@@ -99,23 +99,75 @@ public sealed class MediaDownloaderService
         startInfo.ArgumentList.Add("-o");
         startInfo.ArgumentList.Add(outputTemplate);
 
-        // Format selection
+        // Locate ffmpeg if available to support merging audio/video and extracting audio
+        var ffmpegResult = ExternalToolLocator.Locate("ffmpeg.exe");
+        if (ffmpegResult.Found && !string.IsNullOrEmpty(ffmpegResult.ExecutablePath))
+        {
+            startInfo.ArgumentList.Add("--ffmpeg-location");
+            startInfo.ArgumentList.Add(ffmpegResult.ExecutablePath);
+        }
+
+        // Format selection & merged streams
         switch (options.Format)
         {
+            case DownloadFormatPreset.Max2160p_4K:
+                startInfo.ArgumentList.Add("-f");
+                startInfo.ArgumentList.Add("bestvideo[height<=2160]+bestaudio/best[height<=2160]/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
+                break;
+
+            case DownloadFormatPreset.Max1440p_2K:
+                startInfo.ArgumentList.Add("-f");
+                startInfo.ArgumentList.Add("bestvideo[height<=1440]+bestaudio/best[height<=1440]/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
+                break;
+
             case DownloadFormatPreset.Max1080p:
                 startInfo.ArgumentList.Add("-f");
                 startInfo.ArgumentList.Add("bestvideo[height<=1080]+bestaudio/best[height<=1080]/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
                 break;
 
             case DownloadFormatPreset.Max720p:
                 startInfo.ArgumentList.Add("-f");
                 startInfo.ArgumentList.Add("bestvideo[height<=720]+bestaudio/best[height<=720]/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
+                break;
+
+            case DownloadFormatPreset.Max480p:
+                startInfo.ArgumentList.Add("-f");
+                startInfo.ArgumentList.Add("bestvideo[height<=480]+bestaudio/best[height<=480]/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
+                break;
+
+            case DownloadFormatPreset.Max360p:
+                startInfo.ArgumentList.Add("-f");
+                startInfo.ArgumentList.Add("bestvideo[height<=360]+bestaudio/best[height<=360]/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
                 break;
 
             case DownloadFormatPreset.AudioOnlyMp3:
                 startInfo.ArgumentList.Add("-x");
                 startInfo.ArgumentList.Add("--audio-format");
                 startInfo.ArgumentList.Add("mp3");
+                break;
+
+            case DownloadFormatPreset.AudioOnlyM4a:
+                startInfo.ArgumentList.Add("-x");
+                startInfo.ArgumentList.Add("--audio-format");
+                startInfo.ArgumentList.Add("m4a");
+                break;
+
+            case DownloadFormatPreset.AudioOnlyFlac:
+                startInfo.ArgumentList.Add("-x");
+                startInfo.ArgumentList.Add("--audio-format");
+                startInfo.ArgumentList.Add("flac");
                 break;
 
             case DownloadFormatPreset.AudioOnlyBest:
@@ -126,6 +178,8 @@ public sealed class MediaDownloaderService
             default:
                 startInfo.ArgumentList.Add("-f");
                 startInfo.ArgumentList.Add("bestvideo+bestaudio/best");
+                startInfo.ArgumentList.Add("--merge-output-format");
+                startInfo.ArgumentList.Add("mp4");
                 break;
         }
 
@@ -134,6 +188,29 @@ public sealed class MediaDownloaderService
         using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
         var tcs = new TaskCompletionSource<bool>();
         string? downloadedFilePath = null;
+
+        void CleanupPartialFiles()
+        {
+            try
+            {
+                if (Directory.Exists(options.OutputDirectory))
+                {
+                    var patterns = new[] { "*.part", "*.ytdl", "*.temp" };
+                    foreach (var pattern in patterns)
+                    {
+                        foreach (var file in Directory.GetFiles(options.OutputDirectory, pattern))
+                        {
+                            try
+                            {
+                                File.Delete(file);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
 
         DataReceivedEventHandler handler = (_, e) =>
         {
@@ -170,6 +247,12 @@ public sealed class MediaDownloaderService
 
         process.Exited += (_, _) =>
         {
+            if (ct.IsCancellationRequested)
+            {
+                tcs.TrySetCanceled(ct);
+                return;
+            }
+
             if (process.ExitCode == 0)
             {
                 progress?.Report(new DownloadProgress
@@ -200,13 +283,23 @@ public sealed class MediaDownloaderService
                 if (!process.HasExited)
                 {
                     process.Kill(entireProcessTree: true);
+                    process.WaitForExit(1000);
                 }
             }
             catch { }
+            CleanupPartialFiles();
             tcs.TrySetCanceled(ct);
         }))
         {
-            await tcs.Task.ConfigureAwait(false);
+            try
+            {
+                await tcs.Task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                CleanupPartialFiles();
+                throw;
+            }
         }
 
         return downloadedFilePath;

@@ -78,13 +78,19 @@
                     <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,12" Margin="0,0,0,14">
                         <StackPanel>
                             <!-- Format Selection -->
-                            <TextBlock Text="Download Quality / Format:" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,4" />
+                            <TextBlock Text="Download Quality &amp; Format (Merged Video + Audio):" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,4" />
                             <ComboBox x:Name="FormatCombo" Height="30" Background="{StaticResource SurfaceRaisedBrush}" Foreground="{StaticResource TextBrush}" Margin="0,0,0,12">
-                                <ComboBoxItem Content="Best Video + Audio (Highest Quality)" Tag="0" IsSelected="True" />
-                                <ComboBoxItem Content="1080p Full HD Video (MP4)" Tag="1" />
-                                <ComboBoxItem Content="720p HD Video (MP4)" Tag="2" />
-                                <ComboBoxItem Content="Audio Only - MP3 (Highest Bitrate)" Tag="3" />
-                                <ComboBoxItem Content="Audio Only - Original Source Format" Tag="4" />
+                                <ComboBoxItem Content="🌟 Best Available Video + Audio (Merged MP4)" Tag="0" IsSelected="True" />
+                                <ComboBoxItem Content="🎬 4K Ultra HD 2160p (Merged MP4)" Tag="1" />
+                                <ComboBoxItem Content="🎬 2K Quad HD 1440p (Merged MP4)" Tag="2" />
+                                <ComboBoxItem Content="🎬 1080p Full HD (Merged MP4)" Tag="3" />
+                                <ComboBoxItem Content="🎬 720p HD (Merged MP4)" Tag="4" />
+                                <ComboBoxItem Content="🎬 480p SD (Merged MP4)" Tag="5" />
+                                <ComboBoxItem Content="🎬 360p Low (Merged MP4)" Tag="6" />
+                                <ComboBoxItem Content="🎵 Audio Only - MP3 (High Bitrate)" Tag="7" />
+                                <ComboBoxItem Content="🎵 Audio Only - M4A / AAC" Tag="8" />
+                                <ComboBoxItem Content="🎵 Audio Only - FLAC (Lossless)" Tag="9" />
+                                <ComboBoxItem Content="🎵 Audio Only - Original Stream" Tag="10" />
                             </ComboBox>
 
                             <!-- Destination Folder -->
@@ -127,9 +133,11 @@
             <!-- Footer -->
             <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="0,0,12,12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,0">
                 <Grid>
-                    <Button x:Name="CancelButton" Content="Cancel" Style="{StaticResource IconButton}" Width="80" Foreground="{StaticResource DangerBrush}" HorizontalAlignment="Left" Visibility="Collapsed" Click="Cancel_Click" />
                     <Button Content="Close" Style="{StaticResource IconButton}" Width="75" HorizontalAlignment="Left" Click="Close_Click" />
-                    <Button x:Name="DownloadButton" Content="Download" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Width="100" Click="Download_Click" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="StopDownloadButton" Content="⏹ Stop Download" Style="{StaticResource SecondaryButtonStyle}" Foreground="{StaticResource DangerBrush}" BorderBrush="{StaticResource DangerBrush}" Height="30" Padding="12,0" Margin="0,0,10,0" Visibility="Collapsed" Click="StopDownload_Click" />
+                        <Button x:Name="DownloadButton" Content="Download" Style="{StaticResource PrimaryButton}" Width="100" Click="Download_Click" />
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

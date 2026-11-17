@@ -167,7 +167,7 @@ public partial class DownloaderWindow : Window
 
         _downloadCts = new CancellationTokenSource();
         ProgressSection.Visibility = Visibility.Visible;
-        CancelButton.Visibility = Visibility.Visible;
+        StopDownloadButton.Visibility = Visibility.Visible;
         DownloadButton.IsEnabled = false;
 
         var progressReporter = new Progress<DownloadProgress>(p =>
@@ -211,7 +211,10 @@ public partial class DownloaderWindow : Window
         }
         catch (OperationCanceledException)
         {
-            ProgressStatusText.Text = "Download cancelled.";
+            ProgressStatusText.Text = "Download stopped by user.";
+            ProgressPctText.Text = "Stopped";
+            DownloadProgressBar.Value = 0;
+            DownloadProgressBar.IsIndeterminate = false;
         }
         catch (Exception ex)
         {
@@ -221,13 +224,19 @@ public partial class DownloaderWindow : Window
         finally
         {
             DownloadButton.IsEnabled = true;
-            CancelButton.Visibility = Visibility.Collapsed;
+            StopDownloadButton.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void StopDownload_Click(object sender, RoutedEventArgs e)
+    {
+        _downloadCts?.Cancel();
+        ProgressStatusText.Text = "Stopping download...";
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
-        _downloadCts?.Cancel();
+        StopDownload_Click(sender, e);
     }
 
     public void ForceClose()
