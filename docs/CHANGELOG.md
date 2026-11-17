@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Local HLS & DASH Stream Playback Support (Section 5)**:
+  - Enabled playback of local HTTP Live Streaming manifests (`.m3u8`) and Dynamic Adaptive Streaming over HTTP manifests (`.mpd`).
+  - Added FFmpeg demuxer protocol whitelist (`protocol_whitelist=file\,http\,https\,tcp\,tls\,crypto\,data`) to `MpvOptionBuilder` so libmpv can demux local manifests that reference local video/audio fragments (`.ts`, `.m4s`).
+  - Added `MediaFormats.IsDashManifest` and `MediaFormats.IsHlsStream` inspecting `#EXT-X-` tags to distinguish continuous streaming manifests from standard audio track playlists.
+  - Enhanced Open File dialog and drag-and-drop to include HLS & DASH streams (`*.m3u8;*.mpd`).
+- **PotPlayer Aligned Bottom Control Bar & Real-Time Codec Badges (Section 5)**:
+  - Redesigned the floating controls overlay bottom bar to align with the reference PotPlayer layout (`media_1794903358608_76261e60.png`):
+    - **Row 0**: Full-width seekbar with electric cyan progress, and right-aligned speaker icon with volume slider.
+    - **Row 1 Left**: Play/Pause (`▶`), Stop (`⏹`), Previous Track (`⏮`), Next Track (`⏭`), Eject/Open Media (`⏏`).
+    - **Row 1 Center**: Time display (`00:00:00 / 00:00:00`) accompanied by 4 compact real-time telemetry badges:
+      - `[H/W]` (electric cyan) / `[S/W]` (muted): Clickable badge showing decoder acceleration and opening Codec Manager.
+      - `[AV01]` / `[HEVC]` / `[H264]` / `[VP9]` / `[MPG4]`: Active video codec badge.
+      - `[OPUS]` / `[AAC]` / `[FLAC]` / `[MP3]`: Active audio codec badge.
+      - `[2.0]` / `[5.1]` / `[7.1]`: Audio channels badge.
+    - **Row 1 Right**: `360°` (VR projection), `3D` (Stereo mode), `🔍` (Playlist search), `目` (Subtitles), `⚙` (Settings), `☰` (Playlist drawer), `⛶` (Fullscreen).
 - **MPEG-4 DXVA Hardware Acceleration Support (Section 4)**:
   - Enabled full GPU hardware acceleration for MPEG-4 Part 2 / ASP (DivX, Xvid), MPEG-2, and modern codecs by passing `hwdec-codecs=all` to libmpv.
   - Added dedicated DirectX Video Acceleration 2 (`dxva2`) alongside Direct3D 11 (`d3d11va`) in Hardware Acceleration selectors.

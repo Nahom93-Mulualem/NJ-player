@@ -140,24 +140,45 @@
             </Border>
         </Border>
 
-        <!-- BOTTOM CONTROL BAR (72px, gradient transparent to 92% bg) -->
+        <!-- BOTTOM CONTROL BAR (74px, gradient transparent to 92% bg) -->
         <Border x:Name="BottomBar"
-                Height="72"
+                Height="74"
                 VerticalAlignment="Bottom"
                 Background="{StaticResource BottomBarGradientBrush}"
-                Padding="16,0,16,8">
+                Padding="14,0,14,6">
             <Grid VerticalAlignment="Bottom">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Row 0: Custom Seekbar (flex) with hover thumbnail preview -->
-                <Grid Grid.Row="0" Margin="0,0,0,6">
+                <!-- Row 0: Custom Seekbar (flex) with Volume Slider on Right -->
+                <Grid Grid.Row="0" Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
                     <views:PlayerSeekbar x:Name="Seekbar" SeekRequested="Seekbar_SeekRequested" />
+
+                    <!-- Volume Control next to seekbar -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <Button x:Name="MuteButton" Style="{StaticResource IconButton}" Width="24" Height="24" ToolTip="Mute (M)" Click="MuteButton_Click">
+                            <TextBlock x:Name="VolumeIcon" Text="🔊" FontSize="12" />
+                        </Button>
+                        <Slider x:Name="VolumeSlider"
+                                Style="{StaticResource PlayerSliderStyle}"
+                                Width="70"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="100"
+                                VerticalAlignment="Center"
+                                Margin="4,0,0,0"
+                                ValueChanged="VolumeSlider_ValueChanged" />
+                    </StackPanel>
                 </Grid>
 
-                <!-- Row 1: Left controls, time labels, right controls -->
+                <!-- Row 1: Left controls (Play, Stop, Prev, Next, Eject), Time & Badges, Right controls -->
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -165,78 +186,108 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left: Playback controls -->
+                    <!-- Left: Playback controls, Open, Time, and Codec Badges -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Skip Backward 10s -->
-                        <Button x:Name="SkipBackwardButton"
-                                Style="{StaticResource IconButton}"
-                                ToolTip="Skip Backward 10s (Left Arrow)"
-                                PreviewMouseLeftButtonDown="SkipBackward_PreviewMouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="SeekButton_PreviewMouseLeftButtonUp"
-                                MouseLeave="SeekButton_MouseLeave"
-                                Margin="0,0,4,0">
-                            <TextBlock Text="⏪" FontSize="13" />
-                        </Button>
-
                         <!-- Play/Pause -->
-                        <Button x:Name="PlayPauseButton" Style="{StaticResource IconButton}" ToolTip="Play / Pause (Space)" Click="PlayPause_Click">
-                            <TextBlock x:Name="PlayPauseIcon" Text="▶" FontSize="14" Foreground="{StaticResource AccentBrush}" />
+                        <Button x:Name="PlayPauseButton" Style="{StaticResource IconButton}" Width="28" Height="28" ToolTip="Play / Pause (Space)" Click="PlayPause_Click" Margin="0,0,2,0">
+                            <TextBlock x:Name="PlayPauseIcon" Text="▶" FontSize="13" Foreground="{StaticResource AccentBrush}" />
                         </Button>
 
-                        <!-- Skip Forward 10s -->
-                        <Button x:Name="SkipForwardButton"
-                                Style="{StaticResource IconButton}"
-                                ToolTip="Skip Forward 10s (Right Arrow)"
-                                PreviewMouseLeftButtonDown="SkipForward_PreviewMouseLeftButtonDown"
-                                PreviewMouseLeftButtonUp="SeekButton_PreviewMouseLeftButtonUp"
-                                MouseLeave="SeekButton_MouseLeave"
-                                Margin="4,0,0,0">
-                            <TextBlock Text="⏩" FontSize="13" />
+                        <!-- Stop -->
+                        <Button x:Name="StopButton" Style="{StaticResource IconButton}" Width="28" Height="28" ToolTip="Stop Playback" Click="StopButton_Click" Margin="0,0,2,0">
+                            <TextBlock Text="⏹" FontSize="12" />
+                        </Button>
+
+                        <!-- Previous -->
+                        <Button x:Name="PreviousButton" Style="{StaticResource IconButton}" Width="28" Height="28" ToolTip="Previous Track / Chapter (P / [)" Click="PreviousButton_Click" Margin="0,0,2,0">
+                            <TextBlock Text="⏮" FontSize="12" />
+                        </Button>
+
+                        <!-- Next -->
+                        <Button x:Name="NextButton" Style="{StaticResource IconButton}" Width="28" Height="28" ToolTip="Next Track / Chapter (N / ])" Click="NextButton_Click" Margin="0,0,2,0">
+                            <TextBlock Text="⏭" FontSize="12" />
+                        </Button>
+
+                        <!-- Open File / Eject -->
+                        <Button x:Name="OpenMediaButton" Style="{StaticResource IconButton}" Width="28" Height="28" ToolTip="Open Media File (Ctrl+O)" Click="OpenMediaButton_Click" Margin="0,0,6,0">
+                            <TextBlock Text="⏏" FontSize="12" />
                         </Button>
 
                         <!-- Time display -->
                         <TextBlock x:Name="OverlayTimeText"
-                                   Text="00:00 / 00:00"
+                                   Text="00:00:00 / 00:00:00"
                                    FontFamily="{StaticResource TimeFont}"
                                    FontSize="12"
-                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Foreground="{StaticResource TextBrush}"
                                    VerticalAlignment="Center"
-                                   Margin="14,0,0,0" />
+                                   Margin="6,0,8,0" />
+
+                        <!-- Codec & Stream Badges (aligning with PotPlayer reference) -->
+                        <StackPanel x:Name="CodecBadgesPanel" Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- HW/SW Badge -->
+                            <Button x:Name="HwBadgeBtn" Style="{StaticResource CaptionButtonStyle}" Width="Auto" Height="19" Padding="4,0" Margin="0,0,4,0" ToolTip="Hardware / Software Decoder (Click to open Codec Manager)" Click="CodecBadge_Click">
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="4,1">
+                                    <TextBlock x:Name="HwBadgeText" Text="H/W" FontSize="10" FontWeight="Bold" FontFamily="{StaticResource TimeFont}" Foreground="{StaticResource AccentBrush}" />
+                                </Border>
+                            </Button>
+
+                            <!-- Video Codec Badge -->
+                            <Button x:Name="VideoCodecBadgeBtn" Style="{StaticResource CaptionButtonStyle}" Width="Auto" Height="19" Padding="4,0" Margin="0,0,4,0" ToolTip="Active Video Codec (Click to open Codec Manager)" Click="CodecBadge_Click">
+                                <Border Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="4,1">
+                                    <TextBlock x:Name="VideoCodecBadgeText" Text="HEVC" FontSize="10" FontWeight="SemiBold" FontFamily="{StaticResource TimeFont}" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                            </Button>
+
+                            <!-- Audio Codec Badge -->
+                            <Border x:Name="AudioCodecBadgeBorder" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="4,1" Margin="0,0,4,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="AudioCodecBadgeText" Text="OPUS" FontSize="10" FontWeight="SemiBold" FontFamily="{StaticResource TimeFont}" Foreground="{StaticResource TextMutedBrush}" />
+                            </Border>
+
+                            <!-- Audio Channels Badge -->
+                            <Border x:Name="ChannelsBadgeBorder" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="4,1" Margin="0,0,4,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="ChannelsBadgeText" Text="2.0" FontSize="10" FontWeight="SemiBold" FontFamily="{StaticResource TimeFont}" Foreground="{StaticResource TextMutedBrush}" />
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Center Spacer -->
                     <Border Grid.Column="1" />
 
-                    <!-- Right: Volume, Speed, Fullscreen -->
+                    <!-- Right: 360°, 3D, Search, Subtitles, Settings, Playlist, Fullscreen -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Volume Icon Button -->
-                        <Button x:Name="MuteButton" Style="{StaticResource IconButton}" ToolTip="Mute (M)" Click="MuteButton_Click">
-                            <TextBlock x:Name="VolumeIcon" Text="🔊" FontSize="13" />
+                        <!-- 360° VR Button -->
+                        <Button x:Name="Vr360Button" Style="{StaticResource IconButton}" ToolTip="Toggle 180° / 360° VR Mode" Click="Vr360Button_Click" Width="34" Height="28" Margin="0,0,2,0">
+                            <TextBlock x:Name="Vr360Icon" Text="360°" FontSize="10" FontWeight="Bold" />
                         </Button>
-                        <!-- Volume Slider -->
-                        <Slider x:Name="VolumeSlider"
-                                Style="{StaticResource PlayerSliderStyle}"
-                                Width="75"
-                                Minimum="0"
-                                Maximum="100"
-                                Value="100"
-                                VerticalAlignment="Center"
-                                Margin="4,0,10,0"
-                                ValueChanged="VolumeSlider_ValueChanged" />
+
+                        <!-- 3D Stereo Button -->
+                        <Button x:Name="ThreeDButton" Style="{StaticResource IconButton}" ToolTip="3D Video Mode" Click="ThreeDButton_Click" Width="28" Height="28" Margin="0,0,2,0">
+                            <TextBlock Text="3D" FontSize="10" FontWeight="Bold" />
+                        </Button>
+
+                        <!-- Search Button -->
+                        <Button x:Name="SearchButton" Style="{StaticResource IconButton}" ToolTip="Search Playlist (Ctrl+F)" Click="SearchButton_Click" Width="28" Height="28" Margin="0,0,2,0">
+                            <TextBlock Text="🔍" FontSize="11" />
+                        </Button>
 
                         <!-- Subtitles Button -->
-                        <Button x:Name="SubtitleButton" Style="{StaticResource IconButton}" ToolTip="Subtitles / Tracks" Click="SubtitleButton_Click" Margin="0,0,4,0">
-                            <TextBlock Text="💬" FontSize="13" />
+                        <Button x:Name="SubtitleButton" Style="{StaticResource IconButton}" ToolTip="Subtitles (V / Ctrl+Shift+S)" Click="SubtitleButton_Click" Width="28" Height="28" Margin="0,0,2,0">
+                            <TextBlock x:Name="SubtitleIcon" Text="目" FontSize="13" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                        </Button>
+
+                        <!-- Settings Button -->
+                        <Button x:Name="GeneralSettingsBtn" Style="{StaticResource IconButton}" ToolTip="General Settings (Ctrl+P)" Click="GeneralSettingsButton_Click" Width="28" Height="28" Margin="0,0,2,0">
+                            <TextBlock Text="⚙" FontSize="12" />
                         </Button>
 
                         <!-- Playlist Button -->
-                        <Button x:Name="PlaylistButton" Style="{StaticResource IconButton}" ToolTip="Playlist (Ctrl+L)" Click="PlaylistButton_Click" Margin="0,0,4,0">
-                            <TextBlock x:Name="PlaylistIcon" Text="📋" FontSize="13" />
+                        <Button x:Name="PlaylistButton" Style="{StaticResource IconButton}" ToolTip="Playlist (Ctrl+L)" Click="PlaylistButton_Click" Width="28" Height="28" Margin="0,0,2,0">
+                            <TextBlock x:Name="PlaylistIcon" Text="☰" FontSize="13" />
                         </Button>
 
                         <!-- Fullscreen Button -->
-                        <Button x:Name="FullscreenButton" Style="{StaticResource IconButton}" ToolTip="Fullscreen (F)" Click="FullscreenButton_Click">
-                            <TextBlock x:Name="FullscreenIcon" Text="⛶" FontSize="13" />
+                        <Button x:Name="FullscreenButton" Style="{StaticResource IconButton}" ToolTip="Fullscreen (F)" Click="FullscreenButton_Click" Width="28" Height="28">
+                            <TextBlock x:Name="FullscreenIcon" Text="⛶" FontSize="12" />
                         </Button>
                     </StackPanel>
                 </Grid>

@@ -452,6 +452,17 @@ public partial class MainWindow : Window
 
         var fileName = Path.GetFileName(filePath);
         _overlay?.UpdateTitle(fileName, filePath);
+        if (_player != null)
+        {
+            Dispatcher.InvokeAsync(async () =>
+            {
+                await Task.Delay(300);
+                if (_player != null)
+                {
+                    _overlay?.UpdateCodecBadges(NJPlayer.Core.Playback.CodecInfo.FromPlayer(_player));
+                }
+            });
+        }
 
         _isAudioMode = MediaFormats.IsAudioOnly(filePath);
         _musicVisualizerActive = false;
@@ -599,6 +610,7 @@ public partial class MainWindow : Window
                 PlayerHost.Visibility = Visibility.Collapsed;
                 EmptyStateOverlay.Visibility = Visibility.Visible;
                 _overlay?.UpdateTitle("NJ Player", string.Empty);
+                _overlay?.UpdateCodecBadges(null);
             }
         }
     }
@@ -1040,6 +1052,10 @@ public partial class MainWindow : Window
                 _overlay?.UpdateTitle($"📻 {mediaTitle}", _currentFilePath ?? string.Empty);
                 _overlay?.ShowToast(mediaTitle, "🎵");
             }
+            if (_player != null)
+            {
+                _overlay?.UpdateCodecBadges(NJPlayer.Core.Playback.CodecInfo.FromPlayer(_player));
+            }
         });
     }
 
@@ -1085,6 +1101,61 @@ public partial class MainWindow : Window
         {
             _overlay?.ShowToast("Settings Saved", "⚙");
         }
+    }
+
+    public void OpenGeneralSettings() => OpenSettings();
+
+    private bool _isVr180Active = false;
+    public void ToggleVr180Mode()
+    {
+        if (_player == null) return;
+        _isVr180Active = !_isVr180Active;
+        try
+        {
+            if (_isVr180Active)
+            {
+                _player.Command("vf", "set", "v360=input=he180:output=rectilinear:fov=110");
+                _overlay?.ShowToast("VR 180° Projection: ON", "360°");
+            }
+            else
+            {
+                _player.Command("vf", "clr", "");
+                _overlay?.ShowToast("VR 180° Projection: OFF", "360°");
+            }
+        }
+        catch (Exception ex)
+        {
+            _overlay?.ShowToast("VR 180 error: " + ex.Message, "360°", isError: true);
+        }
+    }
+
+    private bool _isThreeDActive = false;
+    public void ToggleThreeDMode()
+    {
+        if (_player == null) return;
+        _isThreeDActive = !_isThreeDActive;
+        try
+        {
+            if (_isThreeDActive)
+            {
+                _player.Command("vf", "set", "stereo3d=sbsl:ml");
+                _overlay?.ShowToast("3D Stereo (Side-by-Side): ON", "3D");
+            }
+            else
+            {
+                _player.Command("vf", "clr", "");
+                _overlay?.ShowToast("3D Mode: OFF", "3D");
+            }
+        }
+        catch (Exception ex)
+        {
+            _overlay?.ShowToast("3D mode error: " + ex.Message, "3D", isError: true);
+        }
+    }
+
+    public void OpenPlaylistSearch()
+    {
+        _overlay?.OpenPlaylistSearch();
     }
 
     public void OpenCodecManager()
@@ -1216,6 +1287,7 @@ public partial class MainWindow : Window
                 PlayerHost.Visibility = Visibility.Collapsed;
                 EmptyStateOverlay.Visibility = Visibility.Visible;
                 _overlay?.UpdateTitle("NJ Player", string.Empty);
+                _overlay?.UpdateCodecBadges(null);
             });
         }
     }
@@ -1228,12 +1300,28 @@ public partial class MainWindow : Window
         });
     }
 
+    public void StopPlayback()
+    {
+        try
+        {
+            if (_player != null && _player.IsInitialized)
+            {
+                _player.Stop();
+            }
+            _overlay?.ShowToast("Stopped", "⏹");
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[StopPlayback] Error: {ex.Message}");
+        }
+    }
+
     public void PromptOpenFile()
     {
         var dialog = new OpenFileDialog
         {
             Title = "Select Media or Playlist File - NJ Player",
-            Filter = "Media & Playlists|*.mp4;*.mkv;*.avi;*.mov;*.webm;*.flv;*.wmv;*.ts;*.m4v;*.mp3;*.flac;*.wav;*.m4a;*.opus;*.ogg;*.m3u;*.m3u8|M3U Playlists (*.m3u;*.m3u8)|*.m3u;*.m3u8|All Files (*.*)|*.*",
+            Filter = "All Supported Media|*.mp4;*.mkv;*.avi;*.mov;*.webm;*.flv;*.wmv;*.ts;*.m4v;*.mpd;*.mp3;*.flac;*.wav;*.m4a;*.opus;*.ogg;*.m3u;*.m3u8|HLS & DASH Streams (*.m3u8;*.mpd)|*.m3u8;*.mpd|M3U Playlists (*.m3u;*.m3u8)|*.m3u;*.m3u8|All Files (*.*)|*.*",
             Multiselect = false
         };
 
@@ -1415,7 +1503,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ExecuteCommand(NJPlayer.Core.Hotkeys.CommandId command)
+    public void ExecuteCommand(NJPlayer.Core.Hotkeys.CommandId command)
     {
         try
         {

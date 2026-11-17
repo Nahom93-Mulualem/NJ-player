@@ -2,9 +2,11 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using NJPlayer.Core.Playback;
+using NJPlayer.Core.Hotkeys;
 
 namespace NJPlayer.App.Overlay;
 
@@ -713,6 +715,128 @@ public partial class ControlsOverlayWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         _mainWindow.Close();
+    }
+
+    public void UpdateCodecBadges(NJPlayer.Core.Playback.CodecInfo? info)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (info == null || string.Equals(info.VideoCodec, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                CodecBadgesPanel.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            CodecBadgesPanel.Visibility = Visibility.Visible;
+
+            // HW / SW
+            if (info.IsHardwareAccelerated)
+            {
+                HwBadgeText.Text = "H/W";
+                HwBadgeText.Foreground = (Brush)FindResource("AccentBrush");
+            }
+            else
+            {
+                HwBadgeText.Text = "S/W";
+                HwBadgeText.Foreground = (Brush)FindResource("TextMutedBrush");
+            }
+
+            // Video Codec
+            var vCodec = info.VideoCodec.ToUpperInvariant();
+            if (vCodec.Contains("HEVC") || vCodec.Contains("H265")) vCodec = "HEVC";
+            else if (vCodec.Contains("H264") || vCodec.Contains("AVC")) vCodec = "H264";
+            else if (vCodec.Contains("AV1") || vCodec.Contains("AV01")) vCodec = "AV01";
+            else if (vCodec.Contains("VP9")) vCodec = "VP9";
+            else if (vCodec.Contains("MPEG4")) vCodec = "MPG4";
+
+            VideoCodecBadgeText.Text = vCodec;
+
+            // Audio Codec
+            var aCodec = info.AudioCodec.ToUpperInvariant();
+            if (!string.IsNullOrEmpty(aCodec) && aCodec != "NONE")
+            {
+                AudioCodecBadgeBorder.Visibility = Visibility.Visible;
+                if (aCodec.Contains("OPUS")) aCodec = "OPUS";
+                else if (aCodec.Contains("AAC")) aCodec = "AAC";
+                else if (aCodec.Contains("FLAC")) aCodec = "FLAC";
+                else if (aCodec.Contains("MP3")) aCodec = "MP3";
+                AudioCodecBadgeText.Text = aCodec;
+            }
+            else
+            {
+                AudioCodecBadgeBorder.Visibility = Visibility.Collapsed;
+            }
+
+            // Channels
+            if (!string.IsNullOrEmpty(info.AudioChannels) && info.AudioChannels != "N/A")
+            {
+                ChannelsBadgeBorder.Visibility = Visibility.Visible;
+                if (info.AudioChannels.StartsWith("2")) ChannelsBadgeText.Text = "2.0";
+                else if (info.AudioChannels.StartsWith("6")) ChannelsBadgeText.Text = "5.1";
+                else if (info.AudioChannels.StartsWith("8")) ChannelsBadgeText.Text = "7.1";
+                else if (info.AudioChannels.StartsWith("1")) ChannelsBadgeText.Text = "1.0";
+                else ChannelsBadgeText.Text = info.AudioChannels;
+            }
+            else
+            {
+                ChannelsBadgeBorder.Visibility = Visibility.Collapsed;
+            }
+        });
+    }
+
+    public void OpenPlaylistSearch()
+    {
+        if (!Drawer.IsOpen)
+        {
+            Drawer.OpenDrawer();
+        }
+        Drawer.SearchBox.Focus();
+    }
+
+    private void StopButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.StopPlayback();
+        ShowControls();
+    }
+
+    private void PreviousButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ExecuteCommand(CommandId.PrevFile);
+        ShowControls();
+    }
+
+    private void NextButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ExecuteCommand(CommandId.NextFile);
+        ShowControls();
+    }
+
+    private void OpenMediaButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.PromptOpenFile();
+        ShowControls();
+    }
+
+    private void CodecBadge_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.OpenCodecManager();
+    }
+
+    private void Vr360Button_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ToggleVr180Mode();
+        ShowControls();
+    }
+
+    private void ThreeDButton_Click(object sender, RoutedEventArgs e)
+    {
+        _mainWindow.ToggleThreeDMode();
+        ShowControls();
+    }
+
+    private void SearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenPlaylistSearch();
     }
 }
 

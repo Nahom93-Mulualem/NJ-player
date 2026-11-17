@@ -234,5 +234,48 @@ public class PlaylistTests
             }
         }
     }
+
+    [Fact]
+    public void MediaFormats_DashAndHlsDetection_WorksAccurately()
+    {
+        Assert.True(NJPlayer.Core.Playback.MediaFormats.IsDashManifest("manifest.mpd"));
+        Assert.True(NJPlayer.Core.Playback.MediaFormats.IsVideo("manifest.mpd"));
+        Assert.False(NJPlayer.Core.Playback.MediaFormats.IsDashManifest("video.mp4"));
+
+        var tempHls = Path.Combine(Path.GetTempPath(), "test_stream_" + Guid.NewGuid().ToString("N") + ".m3u8");
+        var hlsContent = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:10\n#EXTINF:9.009,\nseg0.ts\n";
+        File.WriteAllText(tempHls, hlsContent);
+
+        var tempTrackPlaylist = Path.Combine(Path.GetTempPath(), "test_playlist_" + Guid.NewGuid().ToString("N") + ".m3u8");
+        var trackContent = "#EXTM3U\n#EXTINF:180,Artist - Song\nSong.mp3\n";
+        File.WriteAllText(tempTrackPlaylist, trackContent);
+
+        try
+        {
+            // HLS stream contains #EXT-X- tags
+            Assert.True(NJPlayer.Core.Playback.MediaFormats.IsHlsStream(tempHls));
+            Assert.False(NJPlayer.Core.Playback.MediaFormats.IsHlsStream(tempTrackPlaylist));
+
+            // PlaylistManager.IsPlaylistFile treats HLS streams as playable media (false) so it plays continuously
+            Assert.False(PlaylistManager.IsPlaylistFile(tempHls));
+            // Standard track playlist is recognized as playlist (true)
+            Assert.True(PlaylistManager.IsPlaylistFile(tempTrackPlaylist));
+        }
+        finally
+        {
+            if (File.Exists(tempHls)) File.Delete(tempHls);
+            if (File.Exists(tempTrackPlaylist)) File.Delete(tempTrackPlaylist);
+        }
+    }
+
+    [Fact]
+    public void MpvOptionBuilder_SetsProtocolWhitelistForLocalHlsAndDash()
+    {
+        var builder = new NJPlayer.Core.Playback.MpvOptionBuilder();
+        var options = builder.Build();
+
+        Assert.True(options.ContainsKey("demuxer-lavf-o"));
+        Assert.Contains("protocol_whitelist", options["demuxer-lavf-o"]);
+    }
 }
 

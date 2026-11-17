@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using NJPlayer.Core.Playback;
 
 namespace NJPlayer.Core.Playlist;
 
@@ -16,8 +17,8 @@ public sealed class PlaylistManager
 {
     public static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".wmv", ".ts", ".m4v",
-        ".mp3", ".flac", ".wav", ".m4a", ".opus", ".ogg", ".aac", ".wma", ".alac", ".aiff", ".ape"
+        ".mp4", ".mkv", ".avi", ".mov", ".webm", ".flv", ".wmv", ".ts", ".m4v", ".mpd",
+        ".mp3", ".flac", ".wav", ".m4a", ".opus", ".ogg", ".aac", ".wma", ".alac", ".aiff", ".ape", ".m3u8"
     };
 
     public static bool IsSupportedMediaFile(string path)
@@ -274,8 +275,12 @@ public sealed class PlaylistManager
     {
         if (string.IsNullOrWhiteSpace(filePath)) return false;
         var ext = Path.GetExtension(filePath);
-        return string.Equals(ext, ".m3u", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(ext, ".m3u8", StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(ext, ".m3u", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(ext, ".m3u8", StringComparison.OrdinalIgnoreCase))
+        {
+            return !MediaFormats.IsHlsStream(filePath);
+        }
+        return false;
     }
 
     public int LoadM3u(string m3uPath)
