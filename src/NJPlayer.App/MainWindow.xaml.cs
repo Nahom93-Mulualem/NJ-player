@@ -709,6 +709,7 @@ public partial class MainWindow : Window
         {
             "bars" => "waveform",
             "waveform" => "spectrum",
+            "spectrum" => "vector",
             _ => "bars"
         };
 
@@ -717,9 +718,10 @@ public partial class MainWindow : Window
 
         var label = next switch
         {
-            "waveform" => "Waveform 🌊",
-            "spectrum" => "Spectrum 🌈",
-            _ => "Frequency Bars 📊"
+            "waveform" => "Oscilloscope Glow 🌊",
+            "spectrum" => "Pitch Spectrum & Sonogram 🌈",
+            "vector" => "Lissajous Cosmic Scope 💫",
+            _ => "Smooth Frequency Bars 📊"
         };
 
         _overlay?.UpdateVisualizerModeState(_musicVisualizerActive, next, _isAudioMode);

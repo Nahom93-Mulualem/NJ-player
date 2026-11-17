@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Smooth 60 FPS & Mesmerizing Audio Visualizers (Section 3)**:
+  - Upgraded all visualizer engines to silky-smooth 60 fps rendering.
+  - **Dynamic Frequency Bars (`showfreqs`)**: Upgraded with cubic root response scale (`ascale=cbrt`), 3-frame fluid temporal averaging (`averaging=3`), and 4-tier electric cyan/emerald neon gradient (`0x00E5FF|0x5CF0FF|0x3DDC97|0x00E5FF`).
+  - **Centered Oscilloscope Glow (`showwaves`)**: Upgraded to centered line mode (`mode=cline`) with sample intensity glow scaling (`draw=scale`) and cubic-root dynamic range (`scale=cbrt`).
+  - **Musical Pitch Spectrum & Sonogram (`showcqt`)**: Enhanced Constant-Q transform waterfall at 60 fps with balanced gamma and transparency (`bar_g=2:sono_g=3:bar_t=0.5:count=6`).
+  - **New Lissajous Cosmic Scope (`avectorscope`)**: Added 4th visualizer mode with 60 fps anti-aliased laser rendering (`draw=aaline`), 4-way kaleidoscopic mirror symmetry (`mirror=xy`), and phosphorescent electric cyan glow trail (`rc=0:gc=229:bc=255:rf=10:gf=25:bf=30`).
+  - Integrated into main window style cycler, floating controls overlay, and online radio selector.
 - **Direct PC File/Folder Browser & In-Drawer Media Explorer (Section 2)**:
   - Added integrated **`📁 Browse PC`** tab directly inside `PlaylistDrawer` with fast asynchronous directory scanning.
   - Quick-access shortcuts for standard system media locations (`Music`, `Videos`, `Downloads`, `Desktop`) and ready storage drives (`C:\`, `D:\`).

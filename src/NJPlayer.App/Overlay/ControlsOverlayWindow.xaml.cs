@@ -651,6 +651,7 @@ public partial class ControlsOverlayWindow : Window
                     {
                         "waveform" => "🌊 Waveform",
                         "spectrum" => "🌈 Spectrum",
+                        "vector" => "💫 Vectorscope",
                         _ => "📊 Bars"
                     };
                 }

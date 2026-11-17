@@ -29,9 +29,11 @@ public partial class RadioPanelWindow : Window
     {
         get
         {
-            if (VizCqtRadio.IsChecked == true) return "showcqt";
-            if (VizWavesRadio.IsChecked == true) return "showwaves";
-            return "off";
+            if (VizWavesRadio.IsChecked == true) return "waveform";
+            if (VizBarsRadio.IsChecked == true) return "bars";
+            if (VizVectorRadio.IsChecked == true) return "vector";
+            if (VizOffRadio.IsChecked == true) return "off";
+            return "showcqt";
         }
     }
 
@@ -45,8 +47,14 @@ public partial class RadioPanelWindow : Window
         var mode = _settings.VisualizerMode?.ToLowerInvariant() ?? "showcqt";
         switch (mode)
         {
-            case "showwaves":
+            case "waveform" or "showwaves":
                 VizWavesRadio.IsChecked = true;
+                break;
+            case "bars" or "showfreqs":
+                VizBarsRadio.IsChecked = true;
+                break;
+            case "vector" or "vectorscope" or "avectorscope":
+                VizVectorRadio.IsChecked = true;
                 break;
             case "off":
                 VizOffRadio.IsChecked = true;

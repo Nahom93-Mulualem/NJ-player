@@ -127,7 +127,7 @@
                             <TextBlock Text="Cover View" FontWeight="SemiBold" FontSize="11"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="VisualizerStyleBtn" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="8,0" Margin="6,0,0,0" ToolTip="Switch Visualizer Style (Bars / Waveform / Spectrum)" Click="VisualizerStyleBtn_Click">
+                    <Button x:Name="VisualizerStyleBtn" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="8,0" Margin="6,0,0,0" ToolTip="Switch Visualizer Style (Bars / Waveform / Spectrum / Vectorscope)" Click="VisualizerStyleBtn_Click">
                         <TextBlock x:Name="VisualizerStyleBtnText" Text="📊 Bars" FontSize="11"/>
                     </Button>
                     <Button x:Name="VisualizerBgBtn" Style="{StaticResource SecondaryButtonStyle}" Height="28" Padding="8,0" Margin="6,0,0,0" ToolTip="Set Custom Background Image or Video (jpg, png, mp4)" Click="VisualizerBgBtn_Click">

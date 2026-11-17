@@ -28,6 +28,8 @@ public static class VisualizerFilterBuilder
 
     /// <summary>
     /// Builds the lavfi-complex filter graph string for mpv.
+    /// Supports high-framerate (60 fps) frequency bars, centered oscilloscope waveform,
+    /// CQT pitch spectrum, and stereo Lissajous vectorscope with electric cyan styling.
     /// </summary>
     public static string BuildFilter(string? mode, string? backgroundPath = null, int width = 1280, int height = 720)
     {
@@ -35,14 +37,16 @@ public static class VisualizerFilterBuilder
         {
             "waveform" or "showwaves" => "waveform",
             "spectrum" or "showcqt" => "spectrum",
+            "vector" or "vectorscope" or "avectorscope" => "vector",
             _ => "bars"
         };
 
         var baseVizFilter = normalizedMode switch
         {
-            "waveform" => $"showwaves=s={width}x{height}:mode=line:colors=0x00E5FF",
-            "spectrum" => $"showcqt=s={width}x{height}:fps=30:bar_g=2:count=1",
-            _ => $"showfreqs=s={width}x{height}:mode=bar:ascale=log:fscale=log:colors=0x00E5FF|0x5CF0FF"
+            "waveform" => $"showwaves=s={width}x{height}:mode=cline:scale=cbrt:draw=scale:rate=60:colors=0x00E5FF|0x5CF0FF",
+            "spectrum" => $"showcqt=s={width}x{height}:fps=60:bar_g=2:sono_g=3:bar_t=0.5:count=6",
+            "vector" => $"aformat=channel_layouts=stereo,avectorscope=s={width}x{height}:mode=lissajous:rate=60:rc=0:gc=229:bc=255:rf=10:gf=25:bf=30:zoom=1.2:draw=aaline:scale=cbrt:mirror=xy",
+            _ => $"showfreqs=s={width}x{height}:mode=bar:ascale=cbrt:fscale=log:win_size=2048:win_func=hann:averaging=3:rate=60:colors=0x00E5FF|0x5CF0FF|0x3DDC97|0x00E5FF"
         };
 
         if (!string.IsNullOrWhiteSpace(backgroundPath) && File.Exists(backgroundPath))

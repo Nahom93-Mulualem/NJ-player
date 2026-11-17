@@ -172,13 +172,21 @@ public class MusicPlayerTests
         var bars = VisualizerFilterBuilder.BuildFilter("bars");
         Assert.Contains("showfreqs", bars);
         Assert.Contains("mode=bar", bars);
+        Assert.Contains("rate=60", bars);
 
         var wave = VisualizerFilterBuilder.BuildFilter("waveform");
         Assert.Contains("showwaves", wave);
-        Assert.Contains("mode=line", wave);
+        Assert.Contains("mode=cline", wave);
+        Assert.Contains("rate=60", wave);
 
         var spec = VisualizerFilterBuilder.BuildFilter("spectrum");
         Assert.Contains("showcqt", spec);
+        Assert.Contains("fps=60", spec);
+
+        var vector = VisualizerFilterBuilder.BuildFilter("vector");
+        Assert.Contains("avectorscope", vector);
+        Assert.Contains("mode=lissajous", vector);
+        Assert.Contains("rate=60", vector);
     }
 
     [Fact]

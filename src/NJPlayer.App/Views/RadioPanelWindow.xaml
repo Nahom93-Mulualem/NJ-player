@@ -81,8 +81,10 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="AUDIO VISUALIZER:" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <RadioButton x:Name="VizCqtRadio" Content="Spectrum (showcqt)" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" IsChecked="True" Checked="VisualizerMode_Checked" />
-                            <RadioButton x:Name="VizWavesRadio" Content="Oscilloscope (showwaves)" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" Checked="VisualizerMode_Checked" />
+                            <RadioButton x:Name="VizCqtRadio" Content="Spectrum" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0" IsChecked="True" Checked="VisualizerMode_Checked" />
+                            <RadioButton x:Name="VizWavesRadio" Content="Waveform" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0" Checked="VisualizerMode_Checked" />
+                            <RadioButton x:Name="VizBarsRadio" Content="Bars" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0" Checked="VisualizerMode_Checked" />
+                            <RadioButton x:Name="VizVectorRadio" Content="Vectorscope" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0" Checked="VisualizerMode_Checked" />
                             <RadioButton x:Name="VizOffRadio" Content="Off" GroupName="VisualizerMode" Foreground="{StaticResource TextBrush}" Checked="VisualizerMode_Checked" />
                         </StackPanel>
                     </Grid>
