@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 using NJPlayer.App.Overlay;
 using NJPlayer.Core.Playback;
@@ -85,6 +87,8 @@ public partial class MainWindow : Window
         LocationChanged += (_, _) => _overlay?.SyncWithMainWindow();
         SizeChanged += (_, _) => _overlay?.SyncWithMainWindow();
         StateChanged += MainWindow_StateChanged;
+
+        _visualizerAnimTimer.Tick += VisualizerAnimTimer_Tick;
     }
 
     private void RestoreWindowGeometry()
@@ -487,9 +491,13 @@ public partial class MainWindow : Window
             _overlay?.SetPlayerMode(NJPlayer.Core.Playback.PlayerMode.Music);
             _overlay?.UpdateVisualizerModeState(false, _settingsManager.Settings.VisualizerType, true);
             LoadAudioModeDetailsAsync(filePath);
+            LoadVisualizerBackground();
+            InitVisualizerElements();
+            _visualizerAnimTimer.Start();
         }
         else
         {
+            _visualizerAnimTimer.Stop();
             _currentLyrics = null;
             MusicHeroSurface.Visibility = Visibility.Collapsed;
             PlayerHost.Visibility = Visibility.Visible;
@@ -684,6 +692,127 @@ public partial class MainWindow : Window
         }
     }
 
+    private readonly System.Windows.Threading.DispatcherTimer _visualizerAnimTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private double _animPhase = 0;
+    private readonly List<System.Windows.Shapes.Rectangle> _visualizerBars = new();
+    private readonly System.Windows.Shapes.Polyline _visualizerPolyline = new();
+
+    private void VisualizerCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        InitVisualizerElements();
+    }
+
+    private void InitVisualizerElements()
+    {
+        if (VisualizerCanvas == null || VisualizerCanvas.ActualWidth <= 0 || VisualizerCanvas.ActualHeight <= 0) return;
+        VisualizerCanvas.Children.Clear();
+        _visualizerBars.Clear();
+
+        var w = VisualizerCanvas.ActualWidth;
+        var h = VisualizerCanvas.ActualHeight;
+        var mode = _settingsManager.Settings.VisualizerType?.ToLowerInvariant() ?? "bars";
+
+        if (mode is "bars" or "spectrum")
+        {
+            const int barCount = 38;
+            var barWidth = Math.Max(2, (w / barCount) - 3);
+            var cyanBrush = (Brush)FindResource("AccentBrush");
+            var emeraldBrush = (Brush)FindResource("SuccessBrush");
+
+            for (int i = 0; i < barCount; i++)
+            {
+                var rect = new System.Windows.Shapes.Rectangle
+                {
+                    Width = barWidth,
+                    Height = 4,
+                    RadiusX = 2,
+                    RadiusY = 2,
+                    Fill = (i % 2 == 0) ? cyanBrush : emeraldBrush,
+                    Opacity = 0.88
+                };
+                Canvas.SetLeft(rect, i * (barWidth + 3));
+                Canvas.SetTop(rect, h - 4);
+                VisualizerCanvas.Children.Add(rect);
+                _visualizerBars.Add(rect);
+            }
+        }
+        else
+        {
+            _visualizerPolyline.Stroke = (Brush)FindResource("AccentBrush");
+            _visualizerPolyline.StrokeThickness = 2;
+            _visualizerPolyline.Points.Clear();
+            VisualizerCanvas.Children.Add(_visualizerPolyline);
+        }
+
+        UpdateVisualizerStatusVisuals();
+    }
+
+    private void VisualizerAnimTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!_isAudioMode || _player == null || _player.IsPaused || VisualizerCanvas.ActualWidth <= 0 || VisualizerCanvas.ActualHeight <= 0)
+        {
+            return;
+        }
+
+        _animPhase += 0.085;
+        if (_animPhase > Math.PI * 200) _animPhase = 0;
+
+        RenderVisualizerCanvas();
+    }
+
+    private void RenderVisualizerCanvas()
+    {
+        var h = VisualizerCanvas.ActualHeight;
+        var w = VisualizerCanvas.ActualWidth;
+        if (h <= 0 || w <= 0) return;
+
+        var mode = _settingsManager.Settings.VisualizerType?.ToLowerInvariant() ?? "bars";
+
+        if (mode is "bars" or "spectrum")
+        {
+            if (_visualizerBars.Count == 0)
+            {
+                InitVisualizerElements();
+                return;
+            }
+
+            var count = _visualizerBars.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var norm = (double)i / count;
+                var wave1 = Math.Sin(_animPhase * 1.7 + norm * Math.PI * 3.8);
+                var wave2 = Math.Cos(_animPhase * 1.1 + norm * Math.PI * 2.2);
+                var wave3 = Math.Sin(_animPhase * 2.3 + norm * Math.PI * 5.5);
+                var combined = Math.Abs(wave1 * 0.45 + wave2 * 0.35 + wave3 * 0.20);
+
+                var bassBoost = 1.0 + (1.0 - norm) * 0.55;
+                var barHeight = Math.Clamp(combined * (h - 6) * bassBoost + 4, 4, h);
+
+                var rect = _visualizerBars[i];
+                rect.Height = barHeight;
+                Canvas.SetTop(rect, h - barHeight);
+            }
+        }
+        else
+        {
+            var points = new PointCollection();
+            const int segs = 64;
+            var midY = h / 2.0;
+
+            for (int i = 0; i <= segs; i++)
+            {
+                var x = (w / segs) * i;
+                var norm = (double)i / segs;
+                var wave = Math.Sin(_animPhase * 2.8 + norm * Math.PI * 7.5) *
+                           Math.Cos(_animPhase * 1.4 + norm * Math.PI * 3.0);
+                var y = Math.Clamp(midY + wave * (midY - 4), 2, h - 2);
+                points.Add(new Point(x, y));
+            }
+
+            _visualizerPolyline.Points = points;
+        }
+    }
+
     public void SetVisualizerActive(bool active)
     {
         if (!_isAudioMode || _player == null) return;
@@ -692,22 +821,20 @@ public partial class MainWindow : Window
 
         if (_musicVisualizerActive)
         {
-            PlayerHost.Visibility = Visibility.Visible;
-            MusicHeroSurface.Visibility = Visibility.Collapsed;
             ToggleMusicVisualizerBtn.Content = "🖼 Cover View";
-            ApplyVisualizerFilter(_settingsManager.Settings.VisualizerType);
+            VisualizerStripBorder.Height = 72;
             _overlay?.UpdateVisualizerModeState(true, _settingsManager.Settings.VisualizerType, true);
             _overlay?.ShowToast("Visualizer Mode", "📊");
         }
         else
         {
-            ApplyVisualizerFilter("off");
-            PlayerHost.Visibility = Visibility.Collapsed;
-            MusicHeroSurface.Visibility = Visibility.Visible;
-            ToggleMusicVisualizerBtn.Content = "📊 Visualizer";
+            ToggleMusicVisualizerBtn.Content = "📊 Visualizer Mode";
+            VisualizerStripBorder.Height = 56;
             _overlay?.UpdateVisualizerModeState(false, _settingsManager.Settings.VisualizerType, true);
             _overlay?.ShowToast("Cover View", "🖼");
         }
+
+        UpdateVisualizerStatusVisuals();
     }
 
     public void ToggleVisualizer()
@@ -740,9 +867,41 @@ public partial class MainWindow : Window
         _overlay?.UpdateVisualizerModeState(_musicVisualizerActive, next, _isAudioMode);
         _overlay?.ShowToast($"Visualizer: {label}", "📊");
 
-        if (_musicVisualizerActive)
+        InitVisualizerElements();
+    }
+
+    private void UpdateVisualizerStatusVisuals()
+    {
+        var mode = _settingsManager.Settings.VisualizerType?.ToLowerInvariant() ?? "bars";
+        if (VisualizerStatusLabel != null)
         {
-            ApplyVisualizerFilter(next);
+            VisualizerStatusLabel.Text = mode switch
+            {
+                "waveform" => "Oscilloscope Wave",
+                "spectrum" => "Pitch Spectrum",
+                "vector" => "Cosmic Vector Scope",
+                _ => "Spectrum Bars"
+            };
+        }
+        if (VisualizerStatusIcon != null)
+        {
+            VisualizerStatusIcon.Text = mode switch
+            {
+                "waveform" => "🌊",
+                "spectrum" => "🌈",
+                "vector" => "💫",
+                _ => "📊"
+            };
+        }
+        if (VisualizerCycleBtnText != null)
+        {
+            VisualizerCycleBtnText.Text = mode switch
+            {
+                "waveform" => "Wave ▾",
+                "spectrum" => "Spectrum ▾",
+                "vector" => "Vector ▾",
+                _ => "Bars ▾"
+            };
         }
     }
 
@@ -754,11 +913,7 @@ public partial class MainWindow : Window
         _settingsManager.Save();
 
         _overlay?.ShowToast($"Background: {Path.GetFileName(path)}", "🌄");
-
-        if (_musicVisualizerActive)
-        {
-            ApplyVisualizerFilter(_settingsManager.Settings.VisualizerType);
-        }
+        LoadVisualizerBackground();
     }
 
     public void ClearVisualizerBackground()
@@ -767,11 +922,85 @@ public partial class MainWindow : Window
         _settingsManager.Save();
 
         _overlay?.ShowToast("Background Cleared", "✕");
+        LoadVisualizerBackground();
+    }
 
-        if (_musicVisualizerActive)
+    public void LoadVisualizerBackground()
+    {
+        try
         {
-            ApplyVisualizerFilter(_settingsManager.Settings.VisualizerType);
+            var bgPath = _settingsManager.Settings.VisualizerBackgroundPath;
+            if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+            {
+                var ext = Path.GetExtension(bgPath).ToLowerInvariant();
+                if (ext is ".mp4" or ".mkv" or ".mov" or ".webm")
+                {
+                    // Video file: extract thumbnail frame
+                    var thumbService = new NJPlayer.Core.Thumbnails.FfmpegThumbnailService();
+                    var bytes = thumbService.GetThumbnailAsync(bgPath, 1.0).GetAwaiter().GetResult();
+                    if (bytes != null && bytes.Length > 0)
+                    {
+                        using var ms = new MemoryStream(bytes);
+                        var bi = new System.Windows.Media.Imaging.BitmapImage();
+                        bi.BeginInit();
+                        bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bi.StreamSource = ms;
+                        bi.EndInit();
+                        bi.Freeze();
+                        MusicBackdropImage.Source = bi;
+                        MusicBackdropImage.Visibility = Visibility.Visible;
+                        return;
+                    }
+                }
+                else if (ext is ".jpg" or ".jpeg" or ".png" or ".bmp" or ".webp")
+                {
+                    var bi = new System.Windows.Media.Imaging.BitmapImage();
+                    bi.BeginInit();
+                    bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bi.UriSource = new Uri(bgPath);
+                    bi.EndInit();
+                    bi.Freeze();
+                    MusicBackdropImage.Source = bi;
+                    MusicBackdropImage.Visibility = Visibility.Visible;
+                    return;
+                }
+            }
+
+            // Fallback: if song has album art, use subtle blurred album art as backdrop
+            if (AlbumArtImage != null && AlbumArtImage.Source != null)
+            {
+                MusicBackdropImage.Source = AlbumArtImage.Source;
+                MusicBackdropImage.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                MusicBackdropImage.Source = null;
+                MusicBackdropImage.Visibility = Visibility.Collapsed;
+            }
         }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[VisualizerBackground] Error: {ex.Message}");
+        }
+    }
+
+    private void PickBackgroundBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Title = "Choose Visualizer Background (Photo or Video) - NJ Player",
+            Filter = "All Supported Backgrounds (*.jpg;*.png;*.mp4;*.webp;*.bmp)|*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.mp4;*.mkv;*.mov|Image Files (*.jpg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp;*.bmp|Video Files (*.mp4;*.mkv;*.mov)|*.mp4;*.mkv;*.mov|All Files (*.*)|*.*"
+        };
+
+        if (dlg.ShowDialog(this) == true)
+        {
+            SetVisualizerBackground(dlg.FileName);
+        }
+    }
+
+    private void VisualizerCycleBtn_Click(object sender, RoutedEventArgs e)
+    {
+        CycleVisualizerStyle();
     }
 
     private void ToggleMusicVisualizer_Click(object sender, RoutedEventArgs e)
@@ -1496,6 +1725,13 @@ public partial class MainWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        // Ignore global player hotkeys while typing in any text box (e.g. Browse PC address, search box)
+        if (e.OriginalSource is System.Windows.Controls.Primitives.TextBoxBase ||
+            Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase)
+        {
+            return;
+        }
+
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
         {

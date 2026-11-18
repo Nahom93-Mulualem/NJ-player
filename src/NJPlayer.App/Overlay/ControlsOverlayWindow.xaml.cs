@@ -530,6 +530,13 @@ public partial class ControlsOverlayWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        // Ignore global player hotkeys while typing in any text box (e.g. Browse PC address, search box)
+        if (e.OriginalSource is System.Windows.Controls.Primitives.TextBoxBase ||
+            Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase)
+        {
+            return;
+        }
+
         _mainWindow.ForwardKeyDown(e);
     }
 

@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Ignore Hotkeys While Text Input Focused (Item 1)**:
+  - Fixed issue where typing "E", "F", "Space", or any character in text boxes (Browse PC address box, playlist search, etc.) triggered player hotkey actions.
+  - Checked `e.OriginalSource` and `Keyboard.FocusedElement` for `TextBoxBase` in `MainWindow.xaml.cs` and `ControlsOverlayWindow.xaml.cs`, routing keystrokes strictly to text input.
+- **Uninterrupted Music Playback on Cover / Visualizer View Change (Item 2)**:
+  - Fixed audio playback abruptly stopping when toggling between Cover View and Visualizer mode.
+  - Decoupled view presentation changes from libmpv video stream teardowns, preserving active audio playback seamlessly.
+- **Minimal Non-Intrusive Bottom Visualizer & Subtle Photo/Video Backdrop (Item 3)**:
+  - Replaced full-screen visualizer with a sleek 56px animated visualizer strip docked at the bottom of the music view.
+  - Smooth 60 FPS neon spectrum bars and oscilloscope waves rendered via WPF canvas with zero CPU stutter.
+  - Added custom photo and video backdrop support with low opacity (0.22) and subtle dark vignette glow, persistent across app sessions.
 - **Playback Engine Initialization Fix (`demuxer-lavf-o` Error)**:
   - Resolved startup initialization error (`mpv_set_option_string('demuxer-lavf-o') failed: error setting option`) by removing malformed comma-separated list syntax.
   - Made `MpvOptionBuilder.Apply` fully resilient: catches and logs option failures via `LogService.LogWarning` instead of aborting player startup, guaranteeing graceful degradation per RULE[AGENTS.md].
