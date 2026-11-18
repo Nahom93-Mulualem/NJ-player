@@ -54,16 +54,35 @@ public sealed class WatchLaterManager
 
     public int AddFolder(string folderPath, bool recursive = true)
     {
+        return AddFolderAsync(folderPath, recursive).GetAwaiter().GetResult();
+    }
+
+    public async Task<int> AddFolderAsync(string folderPath, bool recursive = true, CancellationToken ct = default)
+    {
         if (!Directory.Exists(folderPath)) return 0;
 
         var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        var files = Directory.EnumerateFiles(folderPath, "*.*", option)
-            .Where(f => SupportedExtensions.Contains(Path.GetExtension(f)))
-            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+        var files = await Task.Run(() =>
+        {
+            try
+            {
+                return Directory.EnumerateFiles(folderPath, "*.*", option)
+                    .Where(f => SupportedExtensions.Contains(Path.GetExtension(f)))
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }, ct);
+
+        if (ct.IsCancellationRequested || files.Count == 0) return 0;
 
         int count = 0;
         foreach (var file in files)
         {
+            if (ct.IsCancellationRequested) break;
             if (Add(file)) count++;
         }
 

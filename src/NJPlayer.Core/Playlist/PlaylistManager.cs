@@ -84,19 +84,40 @@ public sealed class PlaylistManager
 
     public int AddFolder(string folderPath, bool recursive = true)
     {
+        return AddFolderAsync(folderPath, recursive).GetAwaiter().GetResult();
+    }
+
+    public async Task<int> AddFolderAsync(string folderPath, bool recursive = true, CancellationToken ct = default)
+    {
         if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
         {
             return 0;
         }
 
         var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        var files = Directory.EnumerateFiles(folderPath, "*.*", searchOption)
-            .Where(f => SupportedExtensions.Contains(Path.GetExtension(f)))
-            .OrderBy(f => f)
-            .ToList();
+        var files = await Task.Run(() =>
+        {
+            try
+            {
+                return Directory.EnumerateFiles(folderPath, "*.*", searchOption)
+                    .Where(f => SupportedExtensions.Contains(Path.GetExtension(f)))
+                    .OrderBy(f => f)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }, ct);
+
+        if (ct.IsCancellationRequested || files.Count == 0)
+        {
+            return 0;
+        }
 
         foreach (var file in files)
         {
+            if (ct.IsCancellationRequested) break;
             _items.Add(new PlaylistItem(file));
         }
 

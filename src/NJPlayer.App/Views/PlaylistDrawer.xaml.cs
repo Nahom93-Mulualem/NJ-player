@@ -20,6 +20,7 @@ public partial class PlaylistDrawer : UserControl
     private WatchLaterManager? _watchLaterManager;
     private readonly LocalMediaBrowserService _browserService = new();
     private string _currentBrowsePath = string.Empty;
+    private CancellationTokenSource? _browseCts;
     private bool _isOpen = false;
     private int _activeTabIndex = 0; // 0: Playlist, 1: Browse PC, 2: Watch Later
     private bool _isWatchLaterTab = false;
@@ -45,7 +46,7 @@ public partial class PlaylistDrawer : UserControl
         _openAnimation = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easing };
         _closeAnimation = new DoubleAnimation(340.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easing };
 
-        InitQuickPlaces();
+        _ = InitQuickPlacesAsync();
     }
 
     public void AttachManager(PlaylistManager manager)
@@ -122,16 +123,34 @@ public partial class PlaylistDrawer : UserControl
 
     // --- Tab Switching & PC Browser ---
 
-    private void InitQuickPlaces()
+    private async Task InitQuickPlacesAsync()
     {
-        QuickPlacesCombo.Items.Clear();
-        foreach (var place in _browserService.GetQuickPlaces())
+        try
         {
-            QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = $"📁 {place.Name}", Tag = place.Path });
+            QuickPlacesCombo.Items.Clear();
+            QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = "📁 Loading locations...", IsEnabled = false });
+            QuickPlacesCombo.SelectedIndex = 0;
+
+            var places = await _browserService.GetQuickPlacesAsync();
+            var drives = await _browserService.GetDrivesAsync();
+
+            QuickPlacesCombo.Items.Clear();
+            foreach (var place in places)
+            {
+                QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = $"📁 {place.Name}", Tag = place.Path });
+            }
+            foreach (var drive in drives)
+            {
+                QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = $"💾 {drive.Name}", Tag = drive.Path });
+            }
+            if (QuickPlacesCombo.Items.Count > 0)
+            {
+                QuickPlacesCombo.SelectedIndex = 0;
+            }
         }
-        foreach (var drive in _browserService.GetDrives())
+        catch (Exception ex)
         {
-            QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = $"💾 {drive.Name}", Tag = drive.Path });
+            Trace.WriteLine($"[InitQuickPlacesAsync] Error: {ex.Message}");
         }
     }
 
@@ -205,22 +224,55 @@ public partial class PlaylistDrawer : UserControl
     {
         if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath)) return;
 
+        // Cancel previous in-flight folder scan
+        _browseCts?.Cancel();
+        _browseCts?.Dispose();
+        _browseCts = new CancellationTokenSource();
+        var ct = _browseCts.Token;
+
+        _currentBrowsePath = folderPath;
+        CurrentPathTextBox.Text = folderPath;
+
+        PcBrowserLoadingOverlay.Visibility = Visibility.Visible;
+        CancelBrowseBtn.Visibility = Visibility.Visible;
+        PcBrowserCountText.Text = "Scanning folder...";
+
         try
         {
-            _currentBrowsePath = folderPath;
-            CurrentPathTextBox.Text = folderPath;
+            var items = await _browserService.EnumerateDirectoryAsync(folderPath, ct);
+            if (!ct.IsCancellationRequested)
+            {
+                PcBrowserListBox.ItemsSource = items;
 
-            var items = await _browserService.EnumerateDirectoryAsync(folderPath);
-            PcBrowserListBox.ItemsSource = items;
-
-            var mediaCount = items.Count(i => !i.IsDirectory);
-            var folderCount = items.Count(i => i.IsDirectory);
-            PcBrowserCountText.Text = $"{folderCount} folders, {mediaCount} media files";
+                var mediaCount = items.Count(i => !i.IsDirectory);
+                var folderCount = items.Count(i => i.IsDirectory);
+                PcBrowserCountText.Text = $"{folderCount} folders, {mediaCount} media files";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            PcBrowserCountText.Text = "Scan cancelled";
         }
         catch (Exception ex)
         {
             PcBrowserCountText.Text = $"Error: {ex.Message}";
         }
+        finally
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                PcBrowserLoadingOverlay.Visibility = Visibility.Collapsed;
+                CancelBrowseBtn.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    private void CancelBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        _browseCts?.Cancel();
+        PcBrowserLoadingOverlay.Visibility = Visibility.Collapsed;
+        CancelBrowseBtn.Visibility = Visibility.Collapsed;
+        PcBrowserCountText.Text = "Scan cancelled";
     }
 
     private async void PcBrowserListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -282,14 +334,25 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
-    private void MenuPcBrowserAdd_Click(object sender, RoutedEventArgs e)
+    private async void MenuPcBrowserAdd_Click(object sender, RoutedEventArgs e)
     {
         if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item && _manager != null)
         {
             if (item.IsDirectory)
             {
-                var added = _manager.AddFolder(item.FullPath, recursive: true);
-                MessageBox.Show($"Added {added} media files to playlist.", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+                PcBrowserLoadingOverlay.Visibility = Visibility.Visible;
+                CancelBrowseBtn.Visibility = Visibility.Visible;
+                PcBrowserLoadingText.Text = "Adding folder to playlist...";
+                try
+                {
+                    var added = await _manager.AddFolderAsync(item.FullPath, recursive: true);
+                    MessageBox.Show($"Added {added} media files to playlist.", "NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                finally
+                {
+                    PcBrowserLoadingOverlay.Visibility = Visibility.Collapsed;
+                    CancelBrowseBtn.Visibility = Visibility.Collapsed;
+                }
             }
             else
             {
@@ -298,13 +361,24 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
-    private void MenuPcBrowserWatchLater_Click(object sender, RoutedEventArgs e)
+    private async void MenuPcBrowserWatchLater_Click(object sender, RoutedEventArgs e)
     {
         if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item && _watchLaterManager != null)
         {
             if (item.IsDirectory)
             {
-                _watchLaterManager.AddFolder(item.FullPath, recursive: true);
+                PcBrowserLoadingOverlay.Visibility = Visibility.Visible;
+                CancelBrowseBtn.Visibility = Visibility.Visible;
+                PcBrowserLoadingText.Text = "Adding folder to Watch Later...";
+                try
+                {
+                    await _watchLaterManager.AddFolderAsync(item.FullPath, recursive: true);
+                }
+                finally
+                {
+                    PcBrowserLoadingOverlay.Visibility = Visibility.Collapsed;
+                    CancelBrowseBtn.Visibility = Visibility.Collapsed;
+                }
             }
             else
             {
@@ -363,12 +437,23 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
-    private void AddCurrentFolderToPlaylist_Click(object sender, RoutedEventArgs e)
+    private async void AddCurrentFolderToPlaylist_Click(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(_currentBrowsePath) || !Directory.Exists(_currentBrowsePath) || _manager == null) return;
 
-        var added = _manager.AddFolder(_currentBrowsePath, recursive: false);
-        MessageBox.Show($"Added {added} media files to the playlist.", "PC Browser - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+        PcBrowserLoadingOverlay.Visibility = Visibility.Visible;
+        CancelBrowseBtn.Visibility = Visibility.Visible;
+        PcBrowserLoadingText.Text = "Adding files to playlist...";
+        try
+        {
+            var added = await _manager.AddFolderAsync(_currentBrowsePath, recursive: false);
+            MessageBox.Show($"Added {added} media files to the playlist.", "PC Browser - NJ Player", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        finally
+        {
+            PcBrowserLoadingOverlay.Visibility = Visibility.Collapsed;
+            CancelBrowseBtn.Visibility = Visibility.Collapsed;
+        }
     }
 
     // --- Playlist Quick Actions (+ Add Files, + Add Folder, Clear) ---
@@ -393,7 +478,7 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
-    private void AddFolder_Click(object sender, RoutedEventArgs e)
+    private async void AddFolder_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog
         {
@@ -402,7 +487,7 @@ public partial class PlaylistDrawer : UserControl
 
         if (dialog.ShowDialog() == true && _manager != null)
         {
-            _manager.AddFolder(dialog.FolderName, recursive: true);
+            await _manager.AddFolderAsync(dialog.FolderName, recursive: true);
         }
     }
 

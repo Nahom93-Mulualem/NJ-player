@@ -39,6 +39,8 @@ public partial class MainWindow : Window
     private NJPlayer.Features.Audio.IAudioSuite? _audioSuite;
     private readonly NJPlayer.Features.Audio.AudioMetadataService _audioMetadataService = new();
     private NJPlayer.Features.Subtitles.LrcDocument? _currentLyrics;
+    private CancellationTokenSource? _audioDetailsCts;
+    private CancellationTokenSource? _visualizerBgCts;
     private bool _isAudioMode = false;
     private bool _musicVisualizerActive = false;
     private Views.AudioPanelWindow? _audioPanel;
@@ -295,6 +297,9 @@ public partial class MainWindow : Window
 
         UpdateRecentFilesList();
 
+        // Enforce clean startup defaults (Item 2)
+        ResetStartupDefaults();
+
         // Measure benchmark startup to first window load
         if (_benchStopwatch != null && !_benchMeasured)
         {
@@ -305,6 +310,53 @@ public partial class MainWindow : Window
             Console.WriteLine($"[BENCH] Cold start to first window render: {ms} ms");
             _overlay?.ShowToast($"Cold Start: {ms} ms", "⚡");
         }
+    }
+
+    private void ResetStartupDefaults()
+    {
+        // 1. Reset video color adjustments (brightness, contrast, saturation, gamma) to 0
+        ResetVideoColors(showToast: false);
+
+        // 2. Clear any lingering video filters (e.g. 3D, VR)
+        if (_player != null && _player.IsInitialized)
+        {
+            try
+            {
+                _player.SetPropertyString("vf", "");
+                _player.SetPropertyDouble("speed", 1.0);
+            }
+            catch { }
+        }
+
+        // 3. Default view: Cover view (album cover, not full-screen visualizer)
+        _musicVisualizerActive = false;
+        VisualizerStripBorder.Height = 56;
+        ToggleMusicVisualizerBtn.Content = "📊 Visualizer Mode";
+
+        // 4. Default visualizer: "bars"
+        if (string.IsNullOrWhiteSpace(_settingsManager.Settings.VisualizerType))
+        {
+            _settingsManager.Settings.VisualizerType = "bars";
+        }
+
+        // 5. Validate visualizer background: if path does not exist, clear it
+        if (!string.IsNullOrEmpty(_settingsManager.Settings.VisualizerBackgroundPath) &&
+            !File.Exists(_settingsManager.Settings.VisualizerBackgroundPath))
+        {
+            _settingsManager.Settings.VisualizerBackgroundPath = null;
+        }
+
+        // 6. Ensure no stuck playback on startup
+        if (_player != null && _player.IsInitialized)
+        {
+            try
+            {
+                _player.Command("stop");
+            }
+            catch { }
+        }
+
+        _pendingResumePosition = null;
     }
 
     private void UpdateRecentFilesList()
@@ -671,10 +723,17 @@ public partial class MainWindow : Window
 
     private async void LoadAudioModeDetailsAsync(string filePath)
     {
+        _audioDetailsCts?.Cancel();
+        _audioDetailsCts?.Dispose();
+        _audioDetailsCts = new CancellationTokenSource();
+        var ct = _audioDetailsCts.Token;
+
         try
         {
-            // 1. Look for sidecar or embedded lyrics
-            _currentLyrics = await System.Threading.Tasks.Task.Run(() => NJPlayer.Features.Subtitles.LrcLyricsService.FindAndLoad(filePath));
+            // 1. Look for sidecar or embedded lyrics off UI thread
+            _currentLyrics = await Task.Run(() => NJPlayer.Features.Subtitles.LrcLyricsService.FindAndLoad(filePath), ct);
+            if (ct.IsCancellationRequested) return;
+
             if (_currentLyrics != null && _currentLyrics.Lines.Count > 0)
             {
                 LyricCurrentText.Text = "♪ Synchronized lyrics ready";
@@ -684,8 +743,9 @@ public partial class MainWindow : Window
                 LyricCurrentText.Text = "♪ Music playing";
             }
 
-            // 2. Extract metadata and album art
-            var meta = await _audioMetadataService.ExtractMetadataAsync(filePath);
+            // 2. Extract metadata and album art asynchronously with cancellation
+            var meta = await _audioMetadataService.ExtractMetadataAsync(filePath, ct);
+            if (ct.IsCancellationRequested) return;
 
             // Verify file hasn't changed while extracting
             if (!string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase))
@@ -700,19 +760,25 @@ public partial class MainWindow : Window
 
             if (!string.IsNullOrEmpty(meta.AlbumArtPath) && File.Exists(meta.AlbumArtPath))
             {
-                try
+                var bytes = await Task.Run(() =>
                 {
+                    try { return File.ReadAllBytes(meta.AlbumArtPath); } catch { return null; }
+                }, ct);
+
+                if (bytes != null && !ct.IsCancellationRequested)
+                {
+                    using var ms = new MemoryStream(bytes);
                     var bi = new System.Windows.Media.Imaging.BitmapImage();
                     bi.BeginInit();
                     bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                    bi.UriSource = new Uri(meta.AlbumArtPath, UriKind.Absolute);
+                    bi.StreamSource = ms;
                     bi.EndInit();
                     bi.Freeze();
 
                     AlbumArtImage.Source = bi;
                     AlbumArtPlaceholder.Visibility = Visibility.Collapsed;
                 }
-                catch
+                else
                 {
                     AlbumArtImage.Source = null;
                     AlbumArtPlaceholder.Visibility = Visibility.Visible;
@@ -723,7 +789,15 @@ public partial class MainWindow : Window
                 AlbumArtImage.Source = null;
                 AlbumArtPlaceholder.Visibility = Visibility.Visible;
             }
+
+            // Also update background if using album art fallback
+            if (string.IsNullOrEmpty(_settingsManager.Settings.VisualizerBackgroundPath) && AlbumArtImage.Source != null)
+            {
+                MusicBackdropImage.Source = AlbumArtImage.Source;
+                MusicBackdropImage.Visibility = Visibility.Visible;
+            }
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             NJPlayer.Core.Diagnostics.LogService.LogWarning($"[MainWindow] Audio details loading exception: {ex.Message}");
@@ -833,9 +907,17 @@ public partial class MainWindow : Window
         }
         else
         {
-            var points = new PointCollection();
             const int segs = 64;
             var midY = h / 2.0;
+
+            if (_visualizerPolyline.Points.Count != segs + 1)
+            {
+                _visualizerPolyline.Points.Clear();
+                for (int i = 0; i <= segs; i++)
+                {
+                    _visualizerPolyline.Points.Add(new Point(0, midY));
+                }
+            }
 
             for (int i = 0; i <= segs; i++)
             {
@@ -844,10 +926,8 @@ public partial class MainWindow : Window
                 var wave = Math.Sin(_animPhase * 2.8 + norm * Math.PI * 7.5) *
                            Math.Cos(_animPhase * 1.4 + norm * Math.PI * 3.0);
                 var y = Math.Clamp(midY + wave * (midY - 4), 2, h - 2);
-                points.Add(new Point(x, y));
+                _visualizerPolyline.Points[i] = new Point(x, y);
             }
-
-            _visualizerPolyline.Points = points;
         }
     }
 
@@ -965,6 +1045,16 @@ public partial class MainWindow : Window
 
     public void LoadVisualizerBackground()
     {
+        _ = LoadVisualizerBackgroundAsync();
+    }
+
+    public async Task LoadVisualizerBackgroundAsync()
+    {
+        _visualizerBgCts?.Cancel();
+        _visualizerBgCts?.Dispose();
+        _visualizerBgCts = new CancellationTokenSource();
+        var ct = _visualizerBgCts.Token;
+
         try
         {
             var bgPath = _settingsManager.Settings.VisualizerBackgroundPath;
@@ -973,9 +1063,11 @@ public partial class MainWindow : Window
                 var ext = Path.GetExtension(bgPath).ToLowerInvariant();
                 if (ext is ".mp4" or ".mkv" or ".mov" or ".webm")
                 {
-                    // Video file: extract thumbnail frame
+                    // Video file: extract thumbnail frame asynchronously off UI thread
                     var thumbService = new NJPlayer.Core.Thumbnails.FfmpegThumbnailService();
-                    var bytes = thumbService.GetThumbnailAsync(bgPath, 1.0).GetAwaiter().GetResult();
+                    var bytes = await thumbService.GetThumbnailAsync(bgPath, 1.0);
+                    if (ct.IsCancellationRequested) return;
+
                     if (bytes != null && bytes.Length > 0)
                     {
                         using var ms = new MemoryStream(bytes);
@@ -992,15 +1084,24 @@ public partial class MainWindow : Window
                 }
                 else if (ext is ".jpg" or ".jpeg" or ".png" or ".bmp" or ".webp")
                 {
-                    var bi = new System.Windows.Media.Imaging.BitmapImage();
-                    bi.BeginInit();
-                    bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                    bi.UriSource = new Uri(bgPath);
-                    bi.EndInit();
-                    bi.Freeze();
-                    MusicBackdropImage.Source = bi;
-                    MusicBackdropImage.Visibility = Visibility.Visible;
-                    return;
+                    var bytes = await Task.Run(() =>
+                    {
+                        try { return File.ReadAllBytes(bgPath); } catch { return null; }
+                    }, ct);
+
+                    if (bytes != null && !ct.IsCancellationRequested)
+                    {
+                        using var ms = new MemoryStream(bytes);
+                        var bi = new System.Windows.Media.Imaging.BitmapImage();
+                        bi.BeginInit();
+                        bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bi.StreamSource = ms;
+                        bi.EndInit();
+                        bi.Freeze();
+                        MusicBackdropImage.Source = bi;
+                        MusicBackdropImage.Visibility = Visibility.Visible;
+                        return;
+                    }
                 }
             }
 
@@ -1016,6 +1117,7 @@ public partial class MainWindow : Window
                 MusicBackdropImage.Visibility = Visibility.Collapsed;
             }
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Trace.WriteLine($"[VisualizerBackground] Error: {ex.Message}");
@@ -1501,7 +1603,7 @@ public partial class MainWindow : Window
         }
     }
 
-    public void ResetVideoColors()
+    public void ResetVideoColors(bool showToast = true)
     {
         if (_player == null || !_player.IsInitialized) return;
         try
@@ -1510,7 +1612,10 @@ public partial class MainWindow : Window
             _player.SetPropertyDouble("contrast", 0.0);
             _player.SetPropertyDouble("saturation", 0.0);
             _player.SetPropertyDouble("gamma", 0.0);
-            _overlay?.ShowToast("Video Colors Reset (0%)", "🔄");
+            if (showToast)
+            {
+                _overlay?.ShowToast("Video Colors Reset (0%)", "🔄");
+            }
         }
         catch (Exception ex)
         {

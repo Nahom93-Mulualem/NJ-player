@@ -38,6 +38,22 @@ public sealed class LocalMediaBrowserService
     };
 
     /// <summary>
+    /// Returns available and ready local storage drives asynchronously off the UI thread.
+    /// </summary>
+    public async Task<IReadOnlyList<(string Name, string Path)>> GetDrivesAsync(CancellationToken ct = default)
+    {
+        return await Task.Run(() => GetDrives(), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns quick navigation shortcuts for standard user media folders asynchronously off the UI thread.
+    /// </summary>
+    public async Task<IReadOnlyList<(string Name, string Path)>> GetQuickPlacesAsync(CancellationToken ct = default)
+    {
+        return await Task.Run(() => GetQuickPlaces(), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Returns available and ready local storage drives (e.g. C:\, D:\).
     /// </summary>
     public IReadOnlyList<(string Name, string Path)> GetDrives()

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **UI Thread Freezes Elimination & Async Media/Folder Browsing**:
+  - Moved folder scanning, drive queries, and user folder shortcuts off the UI thread via `Task.Run` and `CancellationToken`.
+  - Added loading indicator overlay with cancellation button (`✕ Cancel`) in the PC Browser drawer.
+  - Replaced synchronous `Directory.EnumerateFiles` with `AddFolderAsync` in `PlaylistManager` and `WatchLaterManager`.
+  - Replaced synchronous `ffmpeg` thumbnail extraction `.GetAwaiter().GetResult()` in visualizer background loading with async non-blocking extraction.
+  - Offloaded tag reading, lyrics parsing, and album art extraction to cancelable background tasks.
+  - Eliminated 60 FPS GC allocations in visualizer waveform rendering by reusing preallocated points.
+- **Clean Startup Defaults**:
+  - Ensured player starts in its clean default state on startup:
+    - Default view: Album Cover View (`_musicVisualizerActive = false`, 56px bottom strip).
+    - Default visualizer: "bars".
+    - Video color adjustments: brightness, contrast, saturation, and gamma reset to 0%.
+    - Video filter graph reset (clearing leftover 3D/VR filters).
+    - Player stopped with no stuck or unexpected auto-playback.
+    - Harmless settings preserved (window size, position, volume).
 - **PC Browsed Video Display Fix (Item 4)**:
   - Fixed issue where videos browsed from PC played sound only without picture due to `PlayerHost` (`HwndHost`) window handle recreation and disconnection.
   - Set `PlayerHost` permanently visible as the base surface, attached `HwndCreated` event to dynamically register `wid` with mpv, and ensured the HWND is wired upon loading video media.

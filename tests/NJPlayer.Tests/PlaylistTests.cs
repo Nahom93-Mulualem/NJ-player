@@ -385,5 +385,42 @@ public class PlaylistTests
         var regexResults = manager.Search(@"^(Alpha|Gamma)", new PlaylistSearchOptions { Mode = PlaylistSearchMode.Regex });
         Assert.Equal(2, regexResults.Count);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task PlaylistManager_AddFolderAsync_LoadsMediaWithoutBlocking()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "njplayer_test_addfolder_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        File.WriteAllText(Path.Combine(tempDir, "song1.mp3"), "audio");
+        File.WriteAllText(Path.Combine(tempDir, "video1.mp4"), "video");
+        File.WriteAllText(Path.Combine(tempDir, "ignore.txt"), "text");
+
+        try
+        {
+            var manager = new PlaylistManager();
+            var added = await manager.AddFolderAsync(tempDir, recursive: false);
+            Assert.Equal(2, added);
+            Assert.Equal(2, manager.Items.Count);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task LocalMediaBrowserService_AsyncMethods_ReturnValidCollections()
+    {
+        var browser = new LocalMediaBrowserService();
+        var drives = await browser.GetDrivesAsync();
+        Assert.NotNull(drives);
+
+        var places = await browser.GetQuickPlacesAsync();
+        Assert.NotNull(places);
+    }
 }
 
