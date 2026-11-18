@@ -32,11 +32,11 @@
     <!-- 1px outline border per DESIGN.md section 2 -->
     <Border x:Name="WindowOutline" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
         <Grid Background="{StaticResource BgBrush}">
-            <!-- Native Win32 child window hosting mpv video surface -->
-            <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Visible" />
+            <!-- Native Win32 child window hosting mpv video surface (collapsed by default to prevent airspace blank window) -->
+            <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" />
 
-            <!-- Dedicated MP3 / Music Player Hero Surface -->
-            <Border x:Name="MusicHeroSurface" Background="{StaticResource BgBrush}" Visibility="Collapsed">
+            <!-- Dedicated MP3 / Music Player Hero Surface (Default startup view: Album Cover view) -->
+            <Border x:Name="MusicHeroSurface" Background="{StaticResource BgBrush}" Visibility="Visible">
                 <Grid>
                     <!-- Subtle Background Photo/Video Backdrop (Low opacity, soft dark vignette glow) -->
                     <Grid x:Name="MusicBackdropContainer" IsHitTestVisible="False">
@@ -135,8 +135,8 @@
                 </Grid>
             </Border>
 
-            <!-- Empty State Placeholder (Visible when no video is playing) -->
-            <Border x:Name="EmptyStateOverlay" Background="{StaticResource BgBrush}" Visibility="Visible">
+            <!-- Empty State Placeholder (Visible only in video mode when no video is playing) -->
+            <Border x:Name="EmptyStateOverlay" Background="{StaticResource BgBrush}" Visibility="Collapsed">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border Width="140" Height="140" HorizontalAlignment="Center" Margin="0,0,0,20">
                         <Border.Effect>
@@ -162,8 +162,8 @@
                     <!-- Missing libmpv notice (hidden by default, shown if DLL is not in libs/ or app directory) -->
                     <Border x:Name="DllNoticeBorder" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,24,0,0" Visibility="Collapsed" MaxWidth="520">
                         <StackPanel>
-                            <TextBlock Text="⚠️ libmpv-2.dll Not Found" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" FontSize="13"/>
-                            <TextBlock Text="To enable video playback, download 64-bit libmpv-2.dll and place it into the 'libs' folder or directly next to the exe." TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" FontSize="12" Margin="0,4,0,0"/>
+                            <TextBlock Text="⚠️ libmpv.dll / libmpv-2.dll Not Found" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" FontSize="13"/>
+                            <TextBlock Text="To enable playback, please make sure 64-bit libmpv.dll (or libmpv-2.dll) is placed next to NJPlayer.App.exe or in the 'libs' folder." TextWrapping="Wrap" Foreground="{StaticResource TextBrush}" FontSize="12" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>

@@ -34,7 +34,6 @@ public partial class PlaylistDrawer : UserControl
     private readonly DoubleAnimation _closeAnimation;
 
     public bool IsOpen => _isOpen;
-    public event EventHandler<PlaylistItem>? ItemSelected;
     public event Action<string>? MediaPathRequested;
 
     public PlaylistDrawer()
@@ -308,6 +307,12 @@ public partial class PlaylistDrawer : UserControl
 
     private void PcBrowserListBox_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        // Ignore if click originated inside a button (e.g. Play, Add) to avoid duplicate event firing with button Click
+        if (e.OriginalSource is DependencyObject dep && dep.FindAncestor<Button>() != null)
+        {
+            return;
+        }
+
         var dependencyObject = e.OriginalSource as DependencyObject;
         var itemContainer = dependencyObject?.FindAncestor<ListBoxItem>();
         if (itemContainer?.DataContext is LocalFileSystemItem item && !item.IsDirectory)
@@ -722,7 +727,6 @@ public partial class PlaylistDrawer : UserControl
             if (actualIndex >= 0)
             {
                 _manager.SetCurrentIndex(actualIndex);
-                ItemSelected?.Invoke(this, item);
             }
         }
     }
@@ -1004,7 +1008,6 @@ public partial class PlaylistDrawer : UserControl
             if (idx >= 0)
             {
                 _manager.SetCurrentIndex(idx);
-                ItemSelected?.Invoke(this, item);
             }
         }
     }

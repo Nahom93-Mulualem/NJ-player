@@ -53,6 +53,12 @@ public partial class ControlsOverlayWindow : Window
         _fadeInAnimation = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(120));
         _fadeOutAnimation = new DoubleAnimation(0.0, TimeSpan.FromMilliseconds(120));
 
+        // Connect drawer media request event once to avoid duplicate stacking handlers
+        Drawer.MediaPathRequested += path =>
+        {
+            _mainWindow.LoadMediaFile(path);
+        };
+
         Loaded += ControlsOverlayWindow_Loaded;
     }
 
@@ -477,7 +483,11 @@ public partial class ControlsOverlayWindow : Window
         {
             if (_playlistManager != null && _playlistManager.Items.Count > 0)
             {
-                _playlistManager.SetCurrentIndex(Math.Max(0, _playlistManager.CurrentIndex));
+                var curIdx = Math.Max(0, _playlistManager.CurrentIndex);
+                if (curIdx < _playlistManager.Items.Count)
+                {
+                    _mainWindow.LoadMediaFile(_playlistManager.Items[curIdx].FilePath);
+                }
             }
             return;
         }
@@ -560,19 +570,11 @@ public partial class ControlsOverlayWindow : Window
     {
         _playlistManager = manager;
         Drawer.AttachManager(manager);
-        Drawer.ItemSelected += (_, item) =>
-        {
-            _mainWindow.LoadMediaFile(item.FilePath);
-        };
     }
 
     public void AttachWatchLater(NJPlayer.Core.Playlist.WatchLaterManager watchLaterManager)
     {
         Drawer.AttachWatchLater(watchLaterManager);
-        Drawer.MediaPathRequested += path =>
-        {
-            _mainWindow.LoadMediaFile(path);
-        };
     }
 
     public void TogglePlaylist()

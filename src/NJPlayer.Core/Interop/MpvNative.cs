@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace NJPlayer.Core.Interop;
@@ -8,6 +10,52 @@ public delegate void MpvWakeupCallback(IntPtr d);
 internal static class MpvNative
 {
     private const string LibName = "libmpv-2.dll";
+
+    static MpvNative()
+    {
+        NativeLibrary.SetDllImportResolver(typeof(MpvNative).Assembly, ResolveDllImport);
+    }
+
+    private static IntPtr ResolveDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+    {
+        if (libraryName == "libmpv-2.dll" || libraryName == "libmpv.dll" || libraryName == "mpv")
+        {
+            string[] candidateFiles = ["libmpv-2.dll", "libmpv.dll", "mpv.dll"];
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+
+            foreach (var candidate in candidateFiles)
+            {
+                // 1. Check in base directory (next to .exe)
+                string rootCandidate = Path.Combine(baseDir, candidate);
+                if (File.Exists(rootCandidate) && NativeLibrary.TryLoad(rootCandidate, out var handle))
+                {
+                    return handle;
+                }
+
+                // 2. Check in libs/ subdirectory
+                string libsCandidate = Path.Combine(baseDir, "libs", candidate);
+                if (File.Exists(libsCandidate) && NativeLibrary.TryLoad(libsCandidate, out var libsHandle))
+                {
+                    return libsHandle;
+                }
+
+                // 3. Check in libs/mpv/ subdirectory
+                string mpvCandidate = Path.Combine(baseDir, "libs", "mpv", candidate);
+                if (File.Exists(mpvCandidate) && NativeLibrary.TryLoad(mpvCandidate, out var mpvHandle))
+                {
+                    return mpvHandle;
+                }
+
+                // 4. Fall back to standard assembly search path
+                if (NativeLibrary.TryLoad(candidate, assembly, searchPath, out var defaultHandle))
+                {
+                    return defaultHandle;
+                }
+            }
+        }
+
+        return IntPtr.Zero;
+    }
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mpv_client_api_version")]
     public static extern ulong ClientApiVersion();

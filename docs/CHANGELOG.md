@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **libmpv.dll Multi-Candidate Dynamic Resolution & Clear Error Notice**:
+  - Implemented dynamic `NativeLibrary.SetDllImportResolver` in `MpvNative` to resolve both `libmpv.dll` and `libmpv-2.dll` next to the executable and in `libs/` subfolders.
+  - Ensured build target copies both `libmpv.dll` and `libmpv-2.dll` to output directory.
+  - Added user-friendly `MessageBox` and in-app notice when dynamic library is missing.
+- **Startup Blank White Screen Elimination**:
+  - Configured `PlayerHost` (`HwndHost`) to collapsed on startup to prevent native Win32 airspace hole punching.
+  - Defaulted app view on startup to the album cover view (`MusicHeroSurface`).
+- **Play Button Duplicate Playback & Stacking Fix**:
+  - Added `_isLoadingMediaFile` re-entrancy guard in `LoadMediaFile`.
+  - Added same-file detection to unpause instead of reloading media into mpv.
+  - Removed duplicate event subscriptions on mode switches in `ControlsOverlayWindow`.
+  - Fixed duplicate event firing between list row mouse-up and row play button clicks.
 - **UI Thread Freezes Elimination & Async Media/Folder Browsing**:
   - Moved folder scanning, drive queries, and user folder shortcuts off the UI thread via `Task.Run` and `CancellationToken`.
   - Added loading indicator overlay with cancellation button (`✕ Cancel`) in the PC Browser drawer.

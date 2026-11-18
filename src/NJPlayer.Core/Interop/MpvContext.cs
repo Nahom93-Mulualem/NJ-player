@@ -31,7 +31,7 @@ public sealed class MpvContext : SafeHandleZeroOrMinusOneIsInvalid
         catch (DllNotFoundException ex)
         {
             throw new DllNotFoundException(
-                "Could not find 'libmpv-2.dll'. Please download libmpv (x64) and place it in the application directory or 'libs/' folder.",
+                "Could not find 'libmpv.dll' (or 'libmpv-2.dll'). Please ensure the 64-bit libmpv dynamic library is placed in the application directory or 'libs/' folder next to NJPlayer.App.exe.",
                 ex);
         }
 

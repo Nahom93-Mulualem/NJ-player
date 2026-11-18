@@ -26,7 +26,7 @@ public partial class MainWindow : Window
     private readonly NJPlayer.Core.Playlist.PlaylistManager _musicPlaylistManager = new();
     private readonly NJPlayer.Core.Playback.PlaybackModeState _videoState = new();
     private readonly NJPlayer.Core.Playback.PlaybackModeState _musicState = new();
-    private NJPlayer.Core.Playback.PlayerMode _currentMode = NJPlayer.Core.Playback.PlayerMode.Video;
+    private NJPlayer.Core.Playback.PlayerMode _currentMode = NJPlayer.Core.Playback.PlayerMode.Music;
     private NJPlayer.Core.Playlist.PlaylistManager _playlistManager => ActivePlaylistManager;
     public NJPlayer.Core.Playlist.PlaylistManager ActivePlaylistManager =>
         _currentMode == NJPlayer.Core.Playback.PlayerMode.Music ? _musicPlaylistManager : _videoPlaylistManager;
@@ -41,7 +41,7 @@ public partial class MainWindow : Window
     private NJPlayer.Features.Subtitles.LrcDocument? _currentLyrics;
     private CancellationTokenSource? _audioDetailsCts;
     private CancellationTokenSource? _visualizerBgCts;
-    private bool _isAudioMode = false;
+    private bool _isAudioMode = true;
     private bool _musicVisualizerActive = false;
     private Views.AudioPanelWindow? _audioPanel;
     private Views.SubtitlePickerWindow? _subtitlePicker;
@@ -328,10 +328,24 @@ public partial class MainWindow : Window
             catch { }
         }
 
-        // 3. Default view: Cover view (album cover, not full-screen visualizer)
+        // 3. Default view: Cover view (album cover, not full-screen visualizer, never blank white window)
         _musicVisualizerActive = false;
         VisualizerStripBorder.Height = 56;
         ToggleMusicVisualizerBtn.Content = "📊 Visualizer Mode";
+
+        MusicHeroSurface.Visibility = Visibility.Visible;
+        PlayerHost.Visibility = Visibility.Collapsed;
+        EmptyStateOverlay.Visibility = Visibility.Collapsed;
+        AlbumArtPlaceholder.Visibility = Visibility.Visible;
+        AlbumArtImage.Source = null;
+        MusicTitleText.Text = "NJ Player";
+        MusicArtistAlbumText.Text = "No media loaded - Drop music or video files here or press Ctrl+O";
+        LyricPrevText.Text = string.Empty;
+        LyricCurrentText.Text = "♪ Ready to play";
+        LyricNextText.Text = string.Empty;
+        _overlay?.SetPlayerMode(NJPlayer.Core.Playback.PlayerMode.Music);
+        _overlay?.UpdateTitle("NJ Player", string.Empty);
+        _overlay?.UpdateCodecBadges(null);
 
         // 4. Default visualizer: "bars"
         if (string.IsNullOrWhiteSpace(_settingsManager.Settings.VisualizerType))
@@ -385,7 +399,7 @@ public partial class MainWindow : Window
 
     private void PlaylistManager_CurrentItemChanged(object? sender, NJPlayer.Core.Playlist.PlaylistItem? item)
     {
-        if (item != null)
+        if (item != null && !_isLoadingMediaFile && !string.Equals(_currentFilePath, item.FilePath, StringComparison.OrdinalIgnoreCase))
         {
             Dispatcher.InvokeAsync(() => LoadMediaFile(item.FilePath));
         }
@@ -428,6 +442,11 @@ public partial class MainWindow : Window
             _isDllAvailable = false;
             DllNoticeBorder.Visibility = Visibility.Visible;
             Trace.WriteLine($"[NJPlayer] {ex.Message}");
+            MessageBox.Show(
+                $"Could not find 'libmpv.dll' (or 'libmpv-2.dll').\n\nPlease ensure 64-bit libmpv.dll is placed next to NJPlayer.App.exe or in the 'libs' folder.\n\nDetails: {ex.Message}",
+                "NJ Player - Playback Engine Missing",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
         catch (Exception ex)
         {
@@ -463,15 +482,19 @@ public partial class MainWindow : Window
         }
     }
 
+    private bool _isLoadingMediaFile = false;
+
     public void LoadMediaFile(string filePath)
     {
+        if (string.IsNullOrWhiteSpace(filePath)) return;
+
         if (!_isDllAvailable || _player == null)
         {
             MessageBox.Show(
-                "Cannot open media: 'libmpv-2.dll' was not found.\n\nPlease place 64-bit libmpv-2.dll into the 'libs' folder or next to NJPlayer.App.exe.",
-                "libmpv Required",
+                "Cannot open media: 'libmpv.dll' (or 'libmpv-2.dll') was not found.\n\nPlease place 64-bit libmpv.dll next to NJPlayer.App.exe or in the 'libs' folder.",
+                "NJ Player - libmpv Required",
                 MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageBoxImage.Warning);
             return;
         }
 
@@ -481,34 +504,57 @@ public partial class MainWindow : Window
             return;
         }
 
-        var isAudio = MediaFormats.IsAudioOnly(filePath);
-        var targetMode = isAudio ? NJPlayer.Core.Playback.PlayerMode.Music : NJPlayer.Core.Playback.PlayerMode.Video;
-
-        // Ensure file is in its dedicated mode playlist queue (isolated queues)
-        var targetPlaylist = isAudio ? _musicPlaylistManager : _videoPlaylistManager;
-        var existingIdx = -1;
-        for (int i = 0; i < targetPlaylist.Items.Count; i++)
+        // If the exact same file is already playing/loaded, unpause if paused and prevent duplicate reload/stacking
+        if (string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase) && _player != null)
         {
-            if (string.Equals(targetPlaylist.Items[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            if (_player.IsPaused)
             {
-                existingIdx = i;
-                break;
+                _player.Play();
             }
-        }
-        if (existingIdx < 0)
-        {
-            targetPlaylist.AddFile(filePath);
-            existingIdx = targetPlaylist.Items.Count - 1;
-        }
-        targetPlaylist.SetCurrentIndex(existingIdx);
-
-        if (_currentMode != targetMode)
-        {
-            SwitchPlayerMode(targetMode, targetFileToPlay: filePath);
             return;
         }
 
-        LoadMediaFileDirect(filePath);
+        if (_isLoadingMediaFile)
+        {
+            return;
+        }
+
+        _isLoadingMediaFile = true;
+        try
+        {
+            var isAudio = MediaFormats.IsAudioOnly(filePath);
+            var targetMode = isAudio ? NJPlayer.Core.Playback.PlayerMode.Music : NJPlayer.Core.Playback.PlayerMode.Video;
+
+            // Ensure file is in its dedicated mode playlist queue (isolated queues)
+            var targetPlaylist = isAudio ? _musicPlaylistManager : _videoPlaylistManager;
+            var existingIdx = -1;
+            for (int i = 0; i < targetPlaylist.Items.Count; i++)
+            {
+                if (string.Equals(targetPlaylist.Items[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    existingIdx = i;
+                    break;
+                }
+            }
+            if (existingIdx < 0)
+            {
+                targetPlaylist.AddFile(filePath);
+                existingIdx = targetPlaylist.Items.Count - 1;
+            }
+            targetPlaylist.SetCurrentIndex(existingIdx);
+
+            if (_currentMode != targetMode)
+            {
+                SwitchPlayerMode(targetMode, targetFileToPlay: filePath);
+                return;
+            }
+
+            LoadMediaFileDirect(filePath);
+        }
+        finally
+        {
+            _isLoadingMediaFile = false;
+        }
     }
 
     private void LoadMediaFileDirect(string filePath)

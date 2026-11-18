@@ -22,7 +22,7 @@
     <ProjectReference Include="..\NJPlayer.Features\NJPlayer.Features.csproj" />
   </ItemGroup>
 
-  <!-- Post-build step: Copy external native binaries (libmpv-2.dll, ffmpeg.exe, ffprobe.exe, yt-dlp.exe) next to the exe -->
+  <!-- Post-build step: Copy external native binaries (libmpv.dll, libmpv-2.dll, ffmpeg.exe, ffprobe.exe, yt-dlp.exe) next to the exe -->
   <Target Name="CopyExternalLibs" AfterTargets="Build">
     <ItemGroup>
       <ExternalLibs Include="$(MSBuildThisFileDirectory)..\..\libs\*.dll;$(MSBuildThisFileDirectory)..\..\libs\*.exe;$(MSBuildThisFileDirectory)..\..\libs\mpv\*.dll;$(MSBuildThisFileDirectory)..\..\libs\**\libmpv*.dll" />
