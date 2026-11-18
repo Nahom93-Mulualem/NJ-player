@@ -30,6 +30,7 @@ public sealed class VideoHost : HwndHost
     private static extern bool DestroyWindow(IntPtr hWnd);
 
     public IntPtr Hwnd { get; private set; }
+    public event EventHandler<IntPtr>? HwndCreated;
 
     protected override HandleRef BuildWindowCore(HandleRef hwndParent)
     {
@@ -46,6 +47,7 @@ public sealed class VideoHost : HwndHost
             IntPtr.Zero,
             IntPtr.Zero);
 
+        HwndCreated?.Invoke(this, Hwnd);
         return new HandleRef(this, Hwnd);
     }
 

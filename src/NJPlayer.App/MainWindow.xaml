@@ -33,7 +33,7 @@
     <Border x:Name="WindowOutline" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
         <Grid Background="{StaticResource BgBrush}">
             <!-- Native Win32 child window hosting mpv video surface -->
-            <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" />
+            <views:VideoHost x:Name="PlayerHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Visible" />
 
             <!-- Dedicated MP3 / Music Player Hero Surface -->
             <Border x:Name="MusicHeroSurface" Background="{StaticResource BgBrush}" Visibility="Collapsed">

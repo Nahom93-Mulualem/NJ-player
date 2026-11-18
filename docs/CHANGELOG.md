@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **PC Browsed Video Display Fix (Item 4)**:
+  - Fixed issue where videos browsed from PC played sound only without picture due to `PlayerHost` (`HwndHost`) window handle recreation and disconnection.
+  - Set `PlayerHost` permanently visible as the base surface, attached `HwndCreated` event to dynamically register `wid` with mpv, and ensured the HWND is wired upon loading video media.
+  - Added direct click-to-play functionality for files browsed in the PC Explorer view (single-click row, click `▶` action button, or press Enter).
+- **Independent & Smooth Music / Video Switching (Item 5)**:
+  - Fixed media cross-contamination by creating completely isolated playlist managers (`_musicPlaylistManager` and `_videoPlaylistManager`).
+  - Implemented seamless state switching in `SwitchPlayerMode`: bookmarks the exact playback second of the departing mode, stops outgoing media, updates UI modes, and restores the incoming mode at its saved playback position.
+- **Granular Video Color Hotkeys & On-Screen Toasts (Item 6)**:
+  - Added dedicated color adjustment hotkeys:
+    - Brightness: `Alt+1` (Down) / `Alt+2` (Up)
+    - Contrast: `Alt+3` (Down) / `Alt+4` (Up)
+    - Saturation: `Alt+5` (Down) / `Alt+6` (Up)
+    - Gamma: `Alt+7` (Down) / `Alt+8` (Up)
+    - Reset All Colors: `Alt+0` (resets to 0%)
+  - Integrated on-screen toast display showing current adjusted percentage with icons (e.g. `Brightness: +10% ☀️`).
+  - Kept all video adjustments disabled while typing in any text box.
 - **Ignore Hotkeys While Text Input Focused (Item 1)**:
   - Fixed issue where typing "E", "F", "Space", or any character in text boxes (Browse PC address box, playlist search, etc.) triggered player hotkey actions.
   - Checked `e.OriginalSource` and `Keyboard.FocusedElement` for `TextBoxBase` in `MainWindow.xaml.cs` and `ControlsOverlayWindow.xaml.cs`, routing keystrokes strictly to text input.

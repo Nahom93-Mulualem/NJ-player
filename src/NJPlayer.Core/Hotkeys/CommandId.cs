@@ -52,5 +52,14 @@ public enum CommandId
     JumpTo60Percent,
     JumpTo70Percent,
     JumpTo80Percent,
-    JumpTo90Percent
+    JumpTo90Percent,
+    BrightnessUp,
+    BrightnessDown,
+    ContrastUp,
+    ContrastDown,
+    SaturationUp,
+    SaturationDown,
+    GammaUp,
+    GammaDown,
+    ResetVideoColors
 }

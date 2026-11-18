@@ -105,6 +105,17 @@ public sealed class HotkeyManager
         AddBinding(CommandId.JumpTo70Percent, "D7", "Jump to 70%", "Seeking");
         AddBinding(CommandId.JumpTo80Percent, "D8", "Jump to 80%", "Seeking");
         AddBinding(CommandId.JumpTo90Percent, "D9", "Jump to 90%", "Seeking");
+
+        // Video Color Adjustments
+        AddBinding(CommandId.BrightnessUp, "Alt+D2", "Brightness +5%", "Video");
+        AddBinding(CommandId.BrightnessDown, "Alt+D1", "Brightness -5%", "Video");
+        AddBinding(CommandId.ContrastUp, "Alt+D4", "Contrast +5%", "Video");
+        AddBinding(CommandId.ContrastDown, "Alt+D3", "Contrast -5%", "Video");
+        AddBinding(CommandId.SaturationUp, "Alt+D6", "Saturation +5%", "Video");
+        AddBinding(CommandId.SaturationDown, "Alt+D5", "Saturation -5%", "Video");
+        AddBinding(CommandId.GammaUp, "Alt+D8", "Gamma +5%", "Video");
+        AddBinding(CommandId.GammaDown, "Alt+D7", "Gamma -5%", "Video");
+        AddBinding(CommandId.ResetVideoColors, "Alt+D0", "Reset Video Colors", "Video");
     }
 
     private void AddBinding(CommandId command, string gesture, string name, string category)
@@ -178,7 +189,14 @@ public sealed class HotkeyManager
         {
             if (key.Length == 1)
             {
-                modifiers.Add(key.ToUpperInvariant());
+                if (char.IsDigit(key[0]))
+                {
+                    modifiers.Add("D" + key);
+                }
+                else
+                {
+                    modifiers.Add(key.ToUpperInvariant());
+                }
             }
             else
             {

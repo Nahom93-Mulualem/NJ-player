@@ -89,6 +89,16 @@ public partial class MainWindow : Window
         StateChanged += MainWindow_StateChanged;
 
         _visualizerAnimTimer.Tick += VisualizerAnimTimer_Tick;
+
+        PlayerHost.HwndCreated += (_, hwnd) =>
+        {
+            try
+            {
+                _player?.SetPropertyString("wid", hwnd.ToInt64().ToString());
+                _player?.SetPropertyString("vo", "gpu");
+            }
+            catch { }
+        };
     }
 
     private void RestoreWindowGeometry()
@@ -422,6 +432,24 @@ public partial class MainWindow : Window
         var isAudio = MediaFormats.IsAudioOnly(filePath);
         var targetMode = isAudio ? NJPlayer.Core.Playback.PlayerMode.Music : NJPlayer.Core.Playback.PlayerMode.Video;
 
+        // Ensure file is in its dedicated mode playlist queue (isolated queues)
+        var targetPlaylist = isAudio ? _musicPlaylistManager : _videoPlaylistManager;
+        var existingIdx = -1;
+        for (int i = 0; i < targetPlaylist.Items.Count; i++)
+        {
+            if (string.Equals(targetPlaylist.Items[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            {
+                existingIdx = i;
+                break;
+            }
+        }
+        if (existingIdx < 0)
+        {
+            targetPlaylist.AddFile(filePath);
+            existingIdx = targetPlaylist.Items.Count - 1;
+        }
+        targetPlaylist.SetCurrentIndex(existingIdx);
+
         if (_currentMode != targetMode)
         {
             SwitchPlayerMode(targetMode, targetFileToPlay: filePath);
@@ -500,10 +528,20 @@ public partial class MainWindow : Window
             _visualizerAnimTimer.Stop();
             _currentLyrics = null;
             MusicHeroSurface.Visibility = Visibility.Collapsed;
-            PlayerHost.Visibility = Visibility.Visible;
             EmptyStateOverlay.Visibility = Visibility.Collapsed;
+            PlayerHost.Visibility = Visibility.Visible;
             _overlay?.SetPlayerMode(NJPlayer.Core.Playback.PlayerMode.Video);
             _overlay?.UpdateVisualizerModeState(false, _settingsManager.Settings.VisualizerType, false);
+
+            if (PlayerHost.Hwnd != IntPtr.Zero && _player != null)
+            {
+                try
+                {
+                    _player.SetPropertyString("wid", PlayerHost.Hwnd.ToInt64().ToString());
+                    _player.SetPropertyString("vo", "gpu");
+                }
+                catch { }
+            }
         }
 
         try
@@ -1447,6 +1485,39 @@ public partial class MainWindow : Window
         }
     }
 
+    public void AdjustVideoProperty(string property, double delta, string label, string icon)
+    {
+        if (_player == null || !_player.IsInitialized) return;
+        try
+        {
+            var cur = _player.GetPropertyDouble(property) ?? 0.0;
+            var val = Math.Clamp(Math.Round(cur + delta), -100.0, 100.0);
+            _player.SetPropertyDouble(property, val);
+            _overlay?.ShowToast($"{label}: {val:+0;-0;0}%", icon);
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[AdjustVideoProperty] Error: {ex.Message}");
+        }
+    }
+
+    public void ResetVideoColors()
+    {
+        if (_player == null || !_player.IsInitialized) return;
+        try
+        {
+            _player.SetPropertyDouble("brightness", 0.0);
+            _player.SetPropertyDouble("contrast", 0.0);
+            _player.SetPropertyDouble("saturation", 0.0);
+            _player.SetPropertyDouble("gamma", 0.0);
+            _overlay?.ShowToast("Video Colors Reset (0%)", "🔄");
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[ResetVideoColors] Error: {ex.Message}");
+        }
+    }
+
     public void OpenPlaylistSearch()
     {
         _overlay?.OpenPlaylistSearch();
@@ -2098,6 +2169,42 @@ public partial class MainWindow : Window
 
                 case NJPlayer.Core.Hotkeys.CommandId.MediaInfo:
                     OpenCodecManager();
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.BrightnessUp:
+                    AdjustVideoProperty("brightness", 5, "Brightness", "☀️");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.BrightnessDown:
+                    AdjustVideoProperty("brightness", -5, "Brightness", "☀️");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.ContrastUp:
+                    AdjustVideoProperty("contrast", 5, "Contrast", "🌓");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.ContrastDown:
+                    AdjustVideoProperty("contrast", -5, "Contrast", "🌓");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.SaturationUp:
+                    AdjustVideoProperty("saturation", 5, "Saturation", "🎨");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.SaturationDown:
+                    AdjustVideoProperty("saturation", -5, "Saturation", "🎨");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.GammaUp:
+                    AdjustVideoProperty("gamma", 5, "Gamma", "✨");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.GammaDown:
+                    AdjustVideoProperty("gamma", -5, "Gamma", "✨");
+                    break;
+
+                case NJPlayer.Core.Hotkeys.CommandId.ResetVideoColors:
+                    ResetVideoColors();
                     break;
 
                 case >= NJPlayer.Core.Hotkeys.CommandId.JumpTo0Percent and <= NJPlayer.Core.Hotkeys.CommandId.JumpTo90Percent:

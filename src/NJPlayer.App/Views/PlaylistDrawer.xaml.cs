@@ -239,6 +239,41 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
+    private void PcBrowserItemPlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string path && !string.IsNullOrEmpty(path))
+        {
+            MediaPathRequested?.Invoke(path);
+            e.Handled = true;
+        }
+    }
+
+    private void PcBrowserListBox_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var dependencyObject = e.OriginalSource as DependencyObject;
+        var itemContainer = dependencyObject?.FindAncestor<ListBoxItem>();
+        if (itemContainer?.DataContext is LocalFileSystemItem item && !item.IsDirectory)
+        {
+            MediaPathRequested?.Invoke(item.FullPath);
+        }
+    }
+
+    private async void PcBrowserListBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && PcBrowserListBox.SelectedItem is LocalFileSystemItem item)
+        {
+            if (item.IsDirectory)
+            {
+                await NavigateToFolderAsync(item.FullPath);
+            }
+            else
+            {
+                MediaPathRequested?.Invoke(item.FullPath);
+            }
+            e.Handled = true;
+        }
+    }
+
     private void MenuPcBrowserPlay_Click(object sender, RoutedEventArgs e)
     {
         if (PcBrowserListBox.SelectedItem is LocalFileSystemItem item && !item.IsDirectory)
