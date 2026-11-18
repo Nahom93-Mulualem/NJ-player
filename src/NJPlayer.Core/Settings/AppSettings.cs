@@ -42,4 +42,9 @@ public sealed class AppSettings
     public string CustomLavcOptions { get; set; } = string.Empty;
     public bool EnableMpeg4Dxva { get; set; } = true;
     public string HwdecCodecs { get; set; } = "all";
+
+    // Playlist search configuration
+    public NJPlayer.Core.Playlist.PlaylistSearchScope PlaylistSearchScope { get; set; } = NJPlayer.Core.Playlist.PlaylistSearchScope.TitleOnly;
+    public NJPlayer.Core.Playlist.PlaylistSearchMode PlaylistSearchMode { get; set; } = NJPlayer.Core.Playlist.PlaylistSearchMode.Contains;
+    public bool PlaylistSearchCaseSensitive { get; set; } = false;
 }

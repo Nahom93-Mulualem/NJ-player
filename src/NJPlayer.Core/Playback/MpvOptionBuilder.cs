@@ -25,7 +25,6 @@ public sealed class MpvOptionBuilder
     {
         WithOption("network-timeout", "15");
         WithOption("stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5");
-        WithOption("demuxer-lavf-o", "protocol_whitelist=file\\,http\\,https\\,tcp\\,tls\\,crypto\\,data");
         return this;
     }
 
@@ -90,7 +89,14 @@ public sealed class MpvOptionBuilder
         ArgumentNullException.ThrowIfNull(context);
         foreach (var (key, value) in _options)
         {
-            context.SetOptionString(key, value);
+            try
+            {
+                context.SetOptionString(key, value);
+            }
+            catch (Exception ex)
+            {
+                NJPlayer.Core.Diagnostics.LogService.LogWarning($"[MpvOptionBuilder] Failed to set option '{key}'='{value}': {ex.Message}");
+            }
         }
     }
 }

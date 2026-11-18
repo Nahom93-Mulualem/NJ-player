@@ -46,8 +46,20 @@
                 <StackPanel x:Name="PlaylistHeaderPanel">
                     <Border x:Name="SearchBorder" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusSm}" Padding="8,4">
                         <Grid>
-                            <TextBlock x:Name="SearchPlaceholder" Text="🔍 Search playlist..." FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" IsHitTestVisible="False" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="SearchPlaceholder" Text="🔍 Search playlist (Title)..." FontSize="12" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" IsHitTestVisible="False" />
                             <TextBox x:Name="SearchBox" Background="Transparent" Foreground="{StaticResource TextBrush}" BorderThickness="0" FontSize="12" VerticalAlignment="Center" TextChanged="SearchBox_TextChanged" />
+                            
+                            <!-- Search Options / Method Customization Button -->
+                            <Button Grid.Column="1" x:Name="SearchMethodBtn" Style="{StaticResource CaptionButtonStyle}" Width="24" Height="22" ToolTip="Customize Search Scope &amp; Match Mode" Click="SearchMethodBtn_Click" Margin="4,0,0,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="SearchMethodBadgeText" Text="Aa" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,0,2,0" />
+                                    <TextBlock Text="▾" FontSize="9" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                         </Grid>
                     </Border>
                     <!-- Playlist Quick Action Bar -->

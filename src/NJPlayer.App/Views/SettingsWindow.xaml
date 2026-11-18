@@ -123,7 +123,47 @@
                         </Grid>
                     </Border>
 
-                    <!-- Section 4: Integrations & Tools -->
+                    <!-- Section 4: Playlist & Search Customization -->
+                    <TextBlock Text="PLAYLIST &amp; SEARCH" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,10" />
+
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource RadiusMd}" Padding="14,10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Default Search Target / Scope" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock Text="Target metadata field queried in the playlist search box." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <ComboBox x:Name="SearchScopeCombo" HorizontalAlignment="Right" VerticalAlignment="Center" Width="200">
+                                    <ComboBoxItem Content="Title Only (File Name)" Tag="TitleOnly" IsSelected="True" />
+                                    <ComboBoxItem Content="Title &amp; Full Path" Tag="TitleAndPath" />
+                                    <ComboBoxItem Content="Directory / Folder Only" Tag="DirectoryOnly" />
+                                </ComboBox>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Matching Algorithm" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock Text="Matching rule applied to search queries." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <ComboBox x:Name="SearchModeCombo" HorizontalAlignment="Right" VerticalAlignment="Center" Width="200">
+                                    <ComboBoxItem Content="Contains Substring" Tag="Contains" IsSelected="True" />
+                                    <ComboBoxItem Content="Exact Full Match" Tag="ExactMatch" />
+                                    <ComboBoxItem Content="Starts With" Tag="StartsWith" />
+                                    <ComboBoxItem Content="Regular Expression (Regex)" Tag="Regex" />
+                                </ComboBox>
+                            </Grid>
+
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Case Sensitive Search" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextBrush}" />
+                                    <TextBlock Text="Distinguish uppercase and lowercase characters when searching." FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <CheckBox x:Name="SearchCaseSensitiveCheckBox" HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Hand" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section 5: Integrations & Tools -->
                     <TextBlock Text="INTEGRATIONS &amp; TOOLS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,10" />
 
                     <!-- Explorer Context Menu -->

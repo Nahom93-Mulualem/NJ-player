@@ -386,6 +386,17 @@ public sealed class PlaylistManager
         return Path.Combine(folder, "playlist.json");
     }
 
+    public IReadOnlyList<PlaylistItem> Search(string query, PlaylistSearchOptions? options = null)
+    {
+        var opt = options ?? new PlaylistSearchOptions();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return _items.ToList();
+        }
+
+        return _items.Where(item => opt.Matches(item, query)).ToList();
+    }
+
     public void SaveToJson(string? filePath = null)
     {
         filePath ??= GetDefaultPlaylistFilePath();

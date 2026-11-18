@@ -1105,28 +1105,93 @@ public partial class MainWindow : Window
 
     public void OpenGeneralSettings() => OpenSettings();
 
-    private bool _isVr180Active = false;
+    private VrProjectionMode _vrMode = VrProjectionMode.Off;
+    private double _vrYaw = 0.0;
+    private double _vrPitch = 0.0;
+    private double _vrRoll = 0.0;
+    private double _vrFov = VrFilterBuilder.DefaultFov;
+
+    public bool IsVrActive => _vrMode != VrProjectionMode.Off;
+    public VrProjectionMode CurrentVrMode => _vrMode;
+
     public void ToggleVr180Mode()
     {
-        if (_player == null) return;
-        _isVr180Active = !_isVr180Active;
+        var nextMode = _vrMode switch
+        {
+            VrProjectionMode.Off => VrProjectionMode.Vr180Sbs,
+            VrProjectionMode.Vr180Sbs => VrProjectionMode.Vr180Mono,
+            VrProjectionMode.Vr180Mono => VrProjectionMode.Vr360Mono,
+            VrProjectionMode.Vr360Mono => VrProjectionMode.Off,
+            _ => VrProjectionMode.Off
+        };
+        SetVrMode(nextMode);
+    }
+
+    public void SetVrMode(VrProjectionMode mode)
+    {
+        if (_player == null || !_player.IsInitialized) return;
+        _vrMode = mode;
+
         try
         {
-            if (_isVr180Active)
+            if (_vrMode != VrProjectionMode.Off)
             {
-                _player.Command("vf", "set", "v360=input=he180:output=rectilinear:fov=110");
-                _overlay?.ShowToast("VR 180° Projection: ON", "360°");
+                var filter = VrFilterBuilder.BuildFilterString(_vrMode, _vrYaw, _vrPitch, _vrRoll, _vrFov);
+                _player.Command("vf", "set", filter);
+                _overlay?.ShowToast($"{VrFilterBuilder.GetModeLabel(_vrMode)}: ON (Drag to Pan)", "360°");
             }
             else
             {
                 _player.Command("vf", "clr", "");
-                _overlay?.ShowToast("VR 180° Projection: OFF", "360°");
+                _overlay?.ShowToast("VR Projection: OFF", "360°");
             }
+            _overlay?.UpdateVrButtonVisuals(_vrMode);
         }
         catch (Exception ex)
         {
-            _overlay?.ShowToast("VR 180 error: " + ex.Message, "360°", isError: true);
+            _overlay?.ShowToast("VR Error: " + ex.Message, "360°", isError: true);
         }
+    }
+
+    public void PanVr(double deltaYaw, double deltaPitch)
+    {
+        if (!IsVrActive || _player == null || !_player.IsInitialized) return;
+
+        _vrYaw += deltaYaw;
+        _vrPitch -= deltaPitch; // Invert Y so mouse dragging down tilts camera up
+        ApplyVrFilterLive();
+    }
+
+    public void ZoomVrFov(double deltaFov)
+    {
+        if (!IsVrActive || _player == null || !_player.IsInitialized) return;
+
+        _vrFov = Math.Clamp(_vrFov + deltaFov, VrFilterBuilder.MinFov, VrFilterBuilder.MaxFov);
+        ApplyVrFilterLive();
+        _overlay?.ShowToast($"FOV: {_vrFov:0}°", "🔍");
+    }
+
+    public void ResetVrView()
+    {
+        _vrYaw = 0.0;
+        _vrPitch = 0.0;
+        _vrRoll = 0.0;
+        _vrFov = VrFilterBuilder.DefaultFov;
+        if (IsVrActive)
+        {
+            ApplyVrFilterLive();
+            _overlay?.ShowToast("VR Camera Reset (Yaw: 0°, Pitch: 0°)", "🎯");
+        }
+    }
+
+    private void ApplyVrFilterLive()
+    {
+        try
+        {
+            var filter = VrFilterBuilder.BuildFilterString(_vrMode, _vrYaw, _vrPitch, _vrRoll, _vrFov);
+            _player?.Command("vf", "set", filter);
+        }
+        catch { }
     }
 
     private bool _isThreeDActive = false;

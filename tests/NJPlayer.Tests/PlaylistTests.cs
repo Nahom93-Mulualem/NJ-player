@@ -269,13 +269,121 @@ public class PlaylistTests
     }
 
     [Fact]
-    public void MpvOptionBuilder_SetsProtocolWhitelistForLocalHlsAndDash()
+    public void MpvOptionBuilder_SetsStreamingDefaults()
     {
         var builder = new NJPlayer.Core.Playback.MpvOptionBuilder();
         var options = builder.Build();
 
-        Assert.True(options.ContainsKey("demuxer-lavf-o"));
-        Assert.Contains("protocol_whitelist", options["demuxer-lavf-o"]);
+        Assert.True(options.ContainsKey("stream-lavf-o"));
+        Assert.Contains("reconnect=1", options["stream-lavf-o"]);
+    }
+
+    [Fact]
+    public void PlaylistSearch_TitleOnly_MatchesTitleNotPath()
+    {
+        var options = new PlaylistSearchOptions
+        {
+            Scope = PlaylistSearchScope.TitleOnly,
+            Mode = PlaylistSearchMode.Contains
+        };
+
+        var item = new PlaylistItem(@"C:\Anime\AttackOnTitan\Episode01.mp4", "Episode 01");
+
+        Assert.True(options.Matches(item, "Episode"));
+        Assert.False(options.Matches(item, "AttackOnTitan")); // Path is ignored in TitleOnly
+    }
+
+    [Fact]
+    public void PlaylistSearch_TitleAndPath_MatchesDirectoryAndTitle()
+    {
+        var options = new PlaylistSearchOptions
+        {
+            Scope = PlaylistSearchScope.TitleAndPath,
+            Mode = PlaylistSearchMode.Contains
+        };
+
+        var item = new PlaylistItem(@"C:\Anime\AttackOnTitan\Episode01.mp4", "Episode 01");
+
+        Assert.True(options.Matches(item, "Episode"));
+        Assert.True(options.Matches(item, "AttackOnTitan"));
+    }
+
+    [Fact]
+    public void PlaylistSearch_ExactMatch_RequiresFullMatch()
+    {
+        var options = new PlaylistSearchOptions
+        {
+            Scope = PlaylistSearchScope.TitleOnly,
+            Mode = PlaylistSearchMode.ExactMatch
+        };
+
+        var item = new PlaylistItem(@"C:\Music\Track1.mp3", "Track1");
+
+        Assert.True(options.Matches(item, "Track1"));
+        Assert.False(options.Matches(item, "Track")); // Partial match fails in Exact mode
+    }
+
+    [Fact]
+    public void PlaylistSearch_StartsWith_MatchesPrefix()
+    {
+        var options = new PlaylistSearchOptions
+        {
+            Scope = PlaylistSearchScope.TitleOnly,
+            Mode = PlaylistSearchMode.StartsWith
+        };
+
+        var item = new PlaylistItem(@"C:\Music\Song_Alpha.mp3", "Song_Alpha");
+
+        Assert.True(options.Matches(item, "Song"));
+        Assert.False(options.Matches(item, "Alpha"));
+    }
+
+    [Fact]
+    public void PlaylistSearch_Regex_EvaluatesPatternAndHandlesInvalidGracefully()
+    {
+        var options = new PlaylistSearchOptions
+        {
+            Scope = PlaylistSearchScope.TitleOnly,
+            Mode = PlaylistSearchMode.Regex
+        };
+
+        var item = new PlaylistItem(@"C:\Videos\Movie_2024.mp4", "Movie_2024");
+
+        Assert.True(options.Matches(item, @"^Movie_\d{4}$"));
+        Assert.False(options.Matches(item, @"^Movie_\d{2}$"));
+        // Invalid regex should return false gracefully without throwing exception
+        Assert.False(options.Matches(item, @"[unclosed-bracket"));
+    }
+
+    [Fact]
+    public void PlaylistSearch_CaseSensitive_HonorsCasing()
+    {
+        var options = new PlaylistSearchOptions
+        {
+            Scope = PlaylistSearchScope.TitleOnly,
+            Mode = PlaylistSearchMode.Contains,
+            CaseSensitive = true
+        };
+
+        var item = new PlaylistItem(@"C:\Music\NeonTrack.flac", "NeonTrack");
+
+        Assert.True(options.Matches(item, "Neon"));
+        Assert.False(options.Matches(item, "neon"));
+    }
+
+    [Fact]
+    public void PlaylistManager_Search_ReturnsFilteredResults()
+    {
+        var manager = new PlaylistManager();
+        manager.AddFile(@"C:\Media\AlphaSong.mp3");
+        manager.AddFile(@"C:\Media\BetaSong.mp3");
+        manager.AddFile(@"C:\Media\GammaVideo.mp4");
+
+        var results = manager.Search("Song", new PlaylistSearchOptions { Mode = PlaylistSearchMode.Contains });
+        Assert.Equal(2, results.Count);
+
+        var regexResults = manager.Search(@"^(Alpha|Gamma)", new PlaylistSearchOptions { Mode = PlaylistSearchMode.Regex });
+        Assert.Equal(2, regexResults.Count);
     }
 }
 

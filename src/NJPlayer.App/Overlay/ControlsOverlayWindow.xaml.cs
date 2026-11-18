@@ -29,6 +29,8 @@ public partial class ControlsOverlayWindow : Window
     private bool _isAlwaysOnTop = false;
     private double _seekRepeatDelta = 0;
     private bool _isRepeating = false;
+    private bool _isVrDragging = false;
+    private Point _vrDragStartPoint;
 
     public ControlsOverlayWindow(MainWindow mainWindow)
     {
@@ -169,6 +171,36 @@ public partial class ControlsOverlayWindow : Window
         {
             _mainWindow.ToggleFullscreen();
             e.Handled = true;
+            return;
+        }
+
+        // Single click: start VR dragging if VR mode is active
+        if (_mainWindow.IsVrActive && !TopBar.IsMouseOver && !BottomBar.IsMouseOver && !Drawer.IsOpen)
+        {
+            _isVrDragging = true;
+            _vrDragStartPoint = e.GetPosition(this);
+            RootGrid.CaptureMouse();
+            e.Handled = true;
+        }
+    }
+
+    private void RootGrid_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isVrDragging)
+        {
+            _isVrDragging = false;
+            RootGrid.ReleaseMouseCapture();
+            e.Handled = true;
+        }
+    }
+
+    private void RootGrid_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (_mainWindow.IsVrActive && !TopBar.IsMouseOver && !BottomBar.IsMouseOver && !Drawer.IsOpen)
+        {
+            var delta = e.Delta > 0 ? -5.0 : 5.0; // Zoom in / zoom out FOV
+            _mainWindow.ZoomVrFov(delta);
+            e.Handled = true;
         }
     }
 
@@ -194,6 +226,18 @@ public partial class ControlsOverlayWindow : Window
 
     private void Window_MouseMove(object sender, MouseEventArgs e)
     {
+        if (_isVrDragging && _mainWindow.IsVrActive)
+        {
+            var currentPos = e.GetPosition(this);
+            var deltaX = currentPos.X - _vrDragStartPoint.X;
+            var deltaY = currentPos.Y - _vrDragStartPoint.Y;
+            _vrDragStartPoint = currentPos;
+
+            // Pan camera: ~0.15 degrees per pixel
+            _mainWindow.PanVr(deltaX * 0.15, deltaY * 0.15);
+            return;
+        }
+
         ShowControls();
     }
 
@@ -826,6 +870,93 @@ public partial class ControlsOverlayWindow : Window
     {
         _mainWindow.ToggleVr180Mode();
         ShowControls();
+    }
+
+    private void Vr360Button_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var menu = new ContextMenu
+        {
+            PlacementTarget = Vr360Button,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Top
+        };
+
+        var header = new MenuItem
+        {
+            Header = "VR / 360° PROJECTION",
+            IsEnabled = false,
+            FontWeight = FontWeights.Bold,
+            Foreground = (Brush)FindResource("AccentBrush")
+        };
+        menu.Items.Add(header);
+
+        var miOff = new MenuItem
+        {
+            Header = "Standard 2D View (Off)",
+            IsChecked = _mainWindow.CurrentVrMode == NJPlayer.Core.Playback.VrProjectionMode.Off
+        };
+        miOff.Click += (_, _) => _mainWindow.SetVrMode(NJPlayer.Core.Playback.VrProjectionMode.Off);
+        menu.Items.Add(miOff);
+
+        var mi180Sbs = new MenuItem
+        {
+            Header = "VR 180° Side-by-Side (SBS)",
+            IsChecked = _mainWindow.CurrentVrMode == NJPlayer.Core.Playback.VrProjectionMode.Vr180Sbs
+        };
+        mi180Sbs.Click += (_, _) => _mainWindow.SetVrMode(NJPlayer.Core.Playback.VrProjectionMode.Vr180Sbs);
+        menu.Items.Add(mi180Sbs);
+
+        var mi180Mono = new MenuItem
+        {
+            Header = "VR 180° Monoscopic",
+            IsChecked = _mainWindow.CurrentVrMode == NJPlayer.Core.Playback.VrProjectionMode.Vr180Mono
+        };
+        mi180Mono.Click += (_, _) => _mainWindow.SetVrMode(NJPlayer.Core.Playback.VrProjectionMode.Vr180Mono);
+        menu.Items.Add(mi180Mono);
+
+        var mi360Mono = new MenuItem
+        {
+            Header = "VR 360° Spherical (Equirectangular)",
+            IsChecked = _mainWindow.CurrentVrMode == NJPlayer.Core.Playback.VrProjectionMode.Vr360Mono
+        };
+        mi360Mono.Click += (_, _) => _mainWindow.SetVrMode(NJPlayer.Core.Playback.VrProjectionMode.Vr360Mono);
+        menu.Items.Add(mi360Mono);
+
+        var mi180Tb = new MenuItem
+        {
+            Header = "VR 180° Top-Bottom (Over-Under)",
+            IsChecked = _mainWindow.CurrentVrMode == NJPlayer.Core.Playback.VrProjectionMode.Vr180TopBottom
+        };
+        mi180Tb.Click += (_, _) => _mainWindow.SetVrMode(NJPlayer.Core.Playback.VrProjectionMode.Vr180TopBottom);
+        menu.Items.Add(mi180Tb);
+
+        menu.Items.Add(new Separator());
+
+        var miReset = new MenuItem
+        {
+            Header = "Reset Camera View (Yaw: 0°, Pitch: 0°, FOV: 105°)"
+        };
+        miReset.Click += (_, _) => _mainWindow.ResetVrView();
+        menu.Items.Add(miReset);
+
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    public void UpdateVrButtonVisuals(NJPlayer.Core.Playback.VrProjectionMode mode)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (mode != NJPlayer.Core.Playback.VrProjectionMode.Off)
+            {
+                Vr360Icon.Foreground = (Brush)FindResource("AccentBrush");
+                Vr360Button.ToolTip = $"{NJPlayer.Core.Playback.VrFilterBuilder.GetModeLabel(mode)} (Active - Drag to Pan, Right-click for options)";
+            }
+            else
+            {
+                Vr360Icon.Foreground = (Brush)FindResource("TextBrush");
+                Vr360Button.ToolTip = "Toggle 180° / 360° VR Mode (Right-click for options)";
+            }
+        });
     }
 
     private void ThreeDButton_Click(object sender, RoutedEventArgs e)

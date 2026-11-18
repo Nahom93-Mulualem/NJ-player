@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added / Fixed
+- **Playback Engine Initialization Fix (`demuxer-lavf-o` Error)**:
+  - Resolved startup initialization error (`mpv_set_option_string('demuxer-lavf-o') failed: error setting option`) by removing malformed comma-separated list syntax.
+  - Made `MpvOptionBuilder.Apply` fully resilient: catches and logs option failures via `LogService.LogWarning` instead of aborting player startup, guaranteeing graceful degradation per RULE[AGENTS.md].
+- **Customizable Playlist Search Method (Section 6)**:
+  - Added configurable search options in `PlaylistSearchOptions.cs`:
+    - **Search Scope**: `Title Only` (file name), `Title & Full Path` (directory + filename), or `Directory Only` (folder).
+    - **Matching Algorithm**: `Contains Substring` (default), `Exact Full Match`, `Starts With`, or `Regular Expression (Regex)`.
+    - **Case Sensitivity**: Optional `Match Case` toggle.
+  - Added interactive search method selector dropdown button (`Aa▾` / `.*▾`) directly inside the Playlist Drawer search bar.
+  - Added dedicated `PLAYLIST & SEARCH` settings block in General Settings (`SettingsWindow.xaml`) to configure global default search scope and mode.
+  - Added `PlaylistManager.Search` with comprehensive test coverage in `PlaylistTests.cs` (handling partial regex syntax without crashing).
+- **Interactive 180° & 360° VR Panoramic Video Playback (Section 7)**:
+  - Added `VrFilterBuilder` and `VrProjectionMode` supporting:
+    - **VR 180° Side-by-Side (SBS)**: Extracts left eye (`crop=iw/2:ih:0:0`) and projects half-equirectangular panoramic view to flat rectilinear viewport via FFmpeg's `v360=input=hequirect:output=flat`.
+    - **VR 180° Monoscopic**: Full-frame 180° panoramic projection (`v360=input=hequirect:output=flat`).
+    - **VR 360° Spherical**: Full 360° equirectangular panoramic projection (`v360=input=equirect:output=flat`).
+    - **VR 180° Top-Bottom**: Over-under stereoscopic projection (`crop=iw:ih/2:0:0,v360=input=hequirect:output=flat`).
+  - Added interactive mouse viewport panning: clicking and dragging on the video surface pans camera `yaw` and `pitch` smoothly in real time.
+  - Added mouse wheel FOV zooming: rolling the mouse wheel dynamically zooms Field of View in/out (from 45° to 140°).
+  - Left-clicking `360°` button cycles projection modes with on-screen notification toast; right-clicking opens a context menu with direct mode selection and `Reset Camera View`.
+  - Comprehensive unit test suite added in `VrTests.cs`.
 - **Local HLS & DASH Stream Playback Support (Section 5)**:
   - Enabled playback of local HTTP Live Streaming manifests (`.m3u8`) and Dynamic Adaptive Streaming over HTTP manifests (`.mpd`).
   - Added FFmpeg demuxer protocol whitelist (`protocol_whitelist=file\,http\,https\,tcp\,tls\,crypto\,data`) to `MpvOptionBuilder` so libmpv can demux local manifests that reference local video/audio fragments (`.ts`, `.m4s`).

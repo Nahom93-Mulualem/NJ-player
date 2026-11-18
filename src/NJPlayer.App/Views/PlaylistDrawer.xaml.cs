@@ -26,6 +26,7 @@ public partial class PlaylistDrawer : UserControl
     private ICollectionView? _filteredView;
     private Point _dragStartPoint;
     private PlaylistItem? _draggedItem;
+    private readonly PlaylistSearchOptions _searchOptions = new();
 
     private readonly DoubleAnimation _openAnimation;
     private readonly DoubleAnimation _closeAnimation;
@@ -37,6 +38,7 @@ public partial class PlaylistDrawer : UserControl
     public PlaylistDrawer()
     {
         InitializeComponent();
+        InitSearchOptions();
 
         // 180ms base easing animation per DESIGN.md section 5
         var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
@@ -425,13 +427,150 @@ public partial class PlaylistDrawer : UserControl
         }
     }
 
+    private void InitSearchOptions()
+    {
+        try
+        {
+            var settings = NJPlayer.Core.Settings.SettingsManager.Instance.Settings;
+            _searchOptions.Scope = settings.PlaylistSearchScope;
+            _searchOptions.Mode = settings.PlaylistSearchMode;
+            _searchOptions.CaseSensitive = settings.PlaylistSearchCaseSensitive;
+            UpdateSearchPlaceholderAndBadge();
+        }
+        catch { }
+    }
+
+    private void UpdateSearchPlaceholderAndBadge()
+    {
+        var scopeDesc = _searchOptions.Scope switch
+        {
+            PlaylistSearchScope.TitleOnly => "Title",
+            PlaylistSearchScope.TitleAndPath => "Path",
+            PlaylistSearchScope.DirectoryOnly => "Folder",
+            _ => "Title"
+        };
+
+        var modeDesc = _searchOptions.Mode switch
+        {
+            PlaylistSearchMode.Contains => "Substring",
+            PlaylistSearchMode.ExactMatch => "Exact",
+            PlaylistSearchMode.StartsWith => "Starts With",
+            PlaylistSearchMode.Regex => "Regex",
+            _ => "Substring"
+        };
+
+        if (SearchMethodBadgeText != null)
+        {
+            SearchMethodBadgeText.Text = _searchOptions.Mode == PlaylistSearchMode.Regex ? ".*" :
+                                         _searchOptions.Mode == PlaylistSearchMode.ExactMatch ? "==" :
+                                         _searchOptions.CaseSensitive ? "Aa" : "aA";
+        }
+
+        if (SearchPlaceholder != null)
+        {
+            SearchPlaceholder.Text = $"🔍 Search playlist ({scopeDesc} • {modeDesc})...";
+        }
+    }
+
+    private void SetSearchScope(PlaylistSearchScope scope)
+    {
+        _searchOptions.Scope = scope;
+        SaveSearchSettings();
+        UpdateSearchPlaceholderAndBadge();
+        _filteredView?.Refresh();
+    }
+
+    private void SetSearchMode(PlaylistSearchMode mode)
+    {
+        _searchOptions.Mode = mode;
+        SaveSearchSettings();
+        UpdateSearchPlaceholderAndBadge();
+        _filteredView?.Refresh();
+    }
+
+    private void ToggleCaseSensitivity()
+    {
+        _searchOptions.CaseSensitive = !_searchOptions.CaseSensitive;
+        SaveSearchSettings();
+        UpdateSearchPlaceholderAndBadge();
+        _filteredView?.Refresh();
+    }
+
+    private void SaveSearchSettings()
+    {
+        try
+        {
+            var mgr = NJPlayer.Core.Settings.SettingsManager.Instance;
+            mgr.Settings.PlaylistSearchScope = _searchOptions.Scope;
+            mgr.Settings.PlaylistSearchMode = _searchOptions.Mode;
+            mgr.Settings.PlaylistSearchCaseSensitive = _searchOptions.CaseSensitive;
+            mgr.Save();
+        }
+        catch { }
+    }
+
+    private void SearchMethodBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu
+        {
+            PlacementTarget = SearchMethodBtn,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
+        };
+
+        // Header 1: Scope
+        var scopeHeader = new MenuItem { Header = "SEARCH TARGET / SCOPE", IsEnabled = false, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("AccentBrush") };
+        menu.Items.Add(scopeHeader);
+
+        var miTitleOnly = new MenuItem { Header = "Title Only (File Name)", IsChecked = _searchOptions.Scope == PlaylistSearchScope.TitleOnly };
+        miTitleOnly.Click += (_, _) => SetSearchScope(PlaylistSearchScope.TitleOnly);
+        menu.Items.Add(miTitleOnly);
+
+        var miTitleAndPath = new MenuItem { Header = "Title & Full File Path", IsChecked = _searchOptions.Scope == PlaylistSearchScope.TitleAndPath };
+        miTitleAndPath.Click += (_, _) => SetSearchScope(PlaylistSearchScope.TitleAndPath);
+        menu.Items.Add(miTitleAndPath);
+
+        var miDirOnly = new MenuItem { Header = "Directory / Folder Name Only", IsChecked = _searchOptions.Scope == PlaylistSearchScope.DirectoryOnly };
+        miDirOnly.Click += (_, _) => SetSearchScope(PlaylistSearchScope.DirectoryOnly);
+        menu.Items.Add(miDirOnly);
+
+        menu.Items.Add(new Separator());
+
+        // Header 2: Mode
+        var modeHeader = new MenuItem { Header = "MATCHING ALGORITHM", IsEnabled = false, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("AccentBrush") };
+        menu.Items.Add(modeHeader);
+
+        var miContains = new MenuItem { Header = "Contains Substring (Default)", IsChecked = _searchOptions.Mode == PlaylistSearchMode.Contains };
+        miContains.Click += (_, _) => SetSearchMode(PlaylistSearchMode.Contains);
+        menu.Items.Add(miContains);
+
+        var miExact = new MenuItem { Header = "Exact Full Match", IsChecked = _searchOptions.Mode == PlaylistSearchMode.ExactMatch };
+        miExact.Click += (_, _) => SetSearchMode(PlaylistSearchMode.ExactMatch);
+        menu.Items.Add(miExact);
+
+        var miStartsWith = new MenuItem { Header = "Starts With", IsChecked = _searchOptions.Mode == PlaylistSearchMode.StartsWith };
+        miStartsWith.Click += (_, _) => SetSearchMode(PlaylistSearchMode.StartsWith);
+        menu.Items.Add(miStartsWith);
+
+        var miRegex = new MenuItem { Header = "Regular Expression (Regex)", IsChecked = _searchOptions.Mode == PlaylistSearchMode.Regex };
+        miRegex.Click += (_, _) => SetSearchMode(PlaylistSearchMode.Regex);
+        menu.Items.Add(miRegex);
+
+        menu.Items.Add(new Separator());
+
+        // Case Sensitive
+        var miCase = new MenuItem { Header = "Match Case (Case Sensitive)", IsCheckable = true, IsChecked = _searchOptions.CaseSensitive };
+        miCase.Click += (_, _) => ToggleCaseSensitivity();
+        menu.Items.Add(miCase);
+
+        menu.IsOpen = true;
+    }
+
     private bool FilterItem(object obj)
     {
         if (string.IsNullOrWhiteSpace(SearchBox.Text)) return true;
         if (obj is PlaylistItem item)
         {
-            return item.Title.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase) ||
-                   item.FilePath.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase);
+            return _searchOptions.Matches(item, SearchBox.Text);
         }
         return false;
     }

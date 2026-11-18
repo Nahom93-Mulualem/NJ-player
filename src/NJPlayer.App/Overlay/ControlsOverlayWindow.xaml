@@ -20,7 +20,7 @@
         MouseLeave="Window_MouseLeave"
         KeyDown="Window_KeyDown">
 
-    <Grid x:Name="RootGrid" Background="Transparent" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
+    <Grid x:Name="RootGrid" Background="Transparent" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown" MouseLeftButtonUp="RootGrid_MouseLeftButtonUp" MouseWheel="RootGrid_MouseWheel">
         <!-- TOP BAR (36px, surface at 85% opacity, window buttons) -->
         <Border x:Name="TopBar"
                 Height="36"
@@ -256,7 +256,7 @@
                     <!-- Right: 360°, 3D, Search, Subtitles, Settings, Playlist, Fullscreen -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- 360° VR Button -->
-                        <Button x:Name="Vr360Button" Style="{StaticResource IconButton}" ToolTip="Toggle 180° / 360° VR Mode" Click="Vr360Button_Click" Width="34" Height="28" Margin="0,0,2,0">
+                        <Button x:Name="Vr360Button" Style="{StaticResource IconButton}" ToolTip="Toggle 180° / 360° VR Mode (Right-click for options)" Click="Vr360Button_Click" MouseRightButtonUp="Vr360Button_MouseRightButtonUp" Width="34" Height="28" Margin="0,0,2,0">
                             <TextBlock x:Name="Vr360Icon" Text="360°" FontSize="10" FontWeight="Bold" />
                         </Button>
 

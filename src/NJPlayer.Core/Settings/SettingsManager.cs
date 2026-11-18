@@ -17,6 +17,8 @@ public sealed class SettingsManager
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
+    public static SettingsManager Instance { get; } = new();
+
     private readonly string _storageDirectory;
     private readonly bool _isPortable;
     private AppSettings _settings = new();

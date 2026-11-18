@@ -26,6 +26,27 @@ public partial class SettingsWindow : Window
         RememberBoundsCheckBox.IsChecked = s.RememberWindowPosition;
         Mpeg4DxvaCheckBox.IsChecked = s.EnableMpeg4Dxva;
 
+        // Playlist Search configuration
+        SearchCaseSensitiveCheckBox.IsChecked = s.PlaylistSearchCaseSensitive;
+
+        foreach (ComboBoxItem item in SearchScopeCombo.Items)
+        {
+            if (string.Equals(item.Tag?.ToString(), s.PlaylistSearchScope.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                SearchScopeCombo.SelectedItem = item;
+                break;
+            }
+        }
+
+        foreach (ComboBoxItem item in SearchModeCombo.Items)
+        {
+            if (string.Equals(item.Tag?.ToString(), s.PlaylistSearchMode.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                SearchModeCombo.SelectedItem = item;
+                break;
+            }
+        }
+
         foreach (ComboBoxItem item in HwdecCombo.Items)
         {
             if (string.Equals(item.Tag?.ToString(), s.HardwareDecoder, StringComparison.OrdinalIgnoreCase))
@@ -138,6 +159,20 @@ public partial class SettingsWindow : Window
         if (HwdecCombo.SelectedItem is ComboBoxItem selected)
         {
             s.HardwareDecoder = selected.Tag?.ToString() ?? "auto-safe";
+        }
+
+        // Playlist Search configuration
+        s.PlaylistSearchCaseSensitive = SearchCaseSensitiveCheckBox.IsChecked == true;
+        if (SearchScopeCombo.SelectedItem is ComboBoxItem selectedScope &&
+            Enum.TryParse<NJPlayer.Core.Playlist.PlaylistSearchScope>(selectedScope.Tag?.ToString(), out var parsedScope))
+        {
+            s.PlaylistSearchScope = parsedScope;
+        }
+
+        if (SearchModeCombo.SelectedItem is ComboBoxItem selectedMode &&
+            Enum.TryParse<NJPlayer.Core.Playlist.PlaylistSearchMode>(selectedMode.Tag?.ToString(), out var parsedMode))
+        {
+            s.PlaylistSearchMode = parsedMode;
         }
 
         _settingsManager.Save();
