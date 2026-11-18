@@ -21,6 +21,7 @@ public partial class PlaylistDrawer : UserControl
     private readonly LocalMediaBrowserService _browserService = new();
     private string _currentBrowsePath = string.Empty;
     private CancellationTokenSource? _browseCts;
+    private bool _isUpdatingQuickPlaces = false;
     private bool _isOpen = false;
     private int _activeTabIndex = 0; // 0: Playlist, 1: Browse PC, 2: Watch Later
     private bool _isWatchLaterTab = false;
@@ -127,6 +128,7 @@ public partial class PlaylistDrawer : UserControl
     {
         try
         {
+            _isUpdatingQuickPlaces = true;
             QuickPlacesCombo.Items.Clear();
             QuickPlacesCombo.Items.Add(new ComboBoxItem { Content = "📁 Loading locations...", IsEnabled = false });
             QuickPlacesCombo.SelectedIndex = 0;
@@ -151,6 +153,10 @@ public partial class PlaylistDrawer : UserControl
         catch (Exception ex)
         {
             Trace.WriteLine($"[InitQuickPlacesAsync] Error: {ex.Message}");
+        }
+        finally
+        {
+            _isUpdatingQuickPlaces = false;
         }
     }
 
@@ -193,7 +199,7 @@ public partial class PlaylistDrawer : UserControl
                 ? Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)
                 : Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
 
-            if (string.IsNullOrEmpty(preferredFolder) || !Directory.Exists(preferredFolder))
+            if (string.IsNullOrEmpty(preferredFolder))
             {
                 preferredFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             }
@@ -222,7 +228,7 @@ public partial class PlaylistDrawer : UserControl
 
     public async Task NavigateToFolderAsync(string folderPath)
     {
-        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath)) return;
+        if (string.IsNullOrWhiteSpace(folderPath)) return;
 
         // Cancel previous in-flight folder scan
         _browseCts?.Cancel();
@@ -422,7 +428,7 @@ public partial class PlaylistDrawer : UserControl
         if (e.Key == Key.Enter)
         {
             var path = CurrentPathTextBox.Text?.Trim();
-            if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+            if (!string.IsNullOrWhiteSpace(path))
             {
                 await NavigateToFolderAsync(path);
             }
@@ -431,7 +437,9 @@ public partial class PlaylistDrawer : UserControl
 
     private async void QuickPlacesCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (QuickPlacesCombo.SelectedItem is ComboBoxItem item && item.Tag is string path && Directory.Exists(path))
+        if (_isUpdatingQuickPlaces) return;
+
+        if (QuickPlacesCombo.SelectedItem is ComboBoxItem item && item.Tag is string path && !string.IsNullOrWhiteSpace(path))
         {
             await NavigateToFolderAsync(path);
         }
@@ -439,7 +447,7 @@ public partial class PlaylistDrawer : UserControl
 
     private async void AddCurrentFolderToPlaylist_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_currentBrowsePath) || !Directory.Exists(_currentBrowsePath) || _manager == null) return;
+        if (string.IsNullOrWhiteSpace(_currentBrowsePath) || _manager == null) return;
 
         PcBrowserLoadingOverlay.Visibility = Visibility.Visible;
         CancelBrowseBtn.Visibility = Visibility.Visible;

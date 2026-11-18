@@ -50,54 +50,60 @@ public sealed class AudioMetadataService
     /// </summary>
     public async Task<AudioTrackMetadata> ExtractMetadataAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        return await Task.Run(async () =>
         {
-            return new AudioTrackMetadata(
-                filePath,
-                Title: Path.GetFileNameWithoutExtension(filePath) ?? "Unknown",
-                Artist: "Unknown Artist",
-                Album: "Unknown Album",
-                Year: null,
-                Bitrate: null,
-                AudioCodec: null,
-                SampleRate: null,
-                Channels: null,
-                AlbumArtPath: null);
-        }
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                return new AudioTrackMetadata(
+                    filePath,
+                    Title: Path.GetFileNameWithoutExtension(filePath) ?? "Unknown",
+                    Artist: "Unknown Artist",
+                    Album: "Unknown Album",
+                    Year: null,
+                    Bitrate: null,
+                    AudioCodec: null,
+                    SampleRate: null,
+                    Channels: null,
+                    AlbumArtPath: null);
+            }
 
-        if (_metadataCache.TryGetValue(filePath, out var cached))
-        {
-            return cached;
-        }
+            if (_metadataCache.TryGetValue(filePath, out var cached))
+            {
+                return cached;
+            }
 
-        try
-        {
-            // 1. Locate Album Art (Sidecar first, then embedded via ffmpeg)
-            var albumArtPath = await ResolveAlbumArtAsync(filePath, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            // 2. Extract tags using ffprobe if available
-            var metadata = await ExtractTagsWithFfprobeAsync(filePath, albumArtPath, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // 1. Locate Album Art (Sidecar first, then embedded via ffmpeg)
+                var albumArtPath = await ResolveAlbumArtAsync(filePath, cancellationToken).ConfigureAwait(false);
 
-            _metadataCache[filePath] = metadata;
-            return metadata;
-        }
-        catch (Exception ex)
-        {
-            LogService.LogWarning($"[AudioMetadata] Extraction failed for '{filePath}': {ex.Message}");
-            var fallback = new AudioTrackMetadata(
-                filePath,
-                Title: Path.GetFileNameWithoutExtension(filePath),
-                Artist: "Unknown Artist",
-                Album: "Unknown Album",
-                Year: null,
-                Bitrate: null,
-                AudioCodec: Path.GetExtension(filePath).TrimStart('.').ToUpperInvariant(),
-                SampleRate: null,
-                Channels: null,
-                AlbumArtPath: null);
+                // 2. Extract tags using ffprobe if available
+                var metadata = await ExtractTagsWithFfprobeAsync(filePath, albumArtPath, cancellationToken).ConfigureAwait(false);
 
-            return fallback;
-        }
+                _metadataCache[filePath] = metadata;
+                return metadata;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                LogService.LogWarning($"[AudioMetadata] Extraction failed for '{filePath}': {ex.Message}");
+                var fallback = new AudioTrackMetadata(
+                    filePath,
+                    Title: Path.GetFileNameWithoutExtension(filePath),
+                    Artist: "Unknown Artist",
+                    Album: "Unknown Album",
+                    Year: null,
+                    Bitrate: null,
+                    AudioCodec: Path.GetExtension(filePath).TrimStart('.').ToUpperInvariant(),
+                    SampleRate: null,
+                    Channels: null,
+                    AlbumArtPath: null);
+
+                return fallback;
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -105,50 +111,51 @@ public sealed class AudioMetadataService
     /// </summary>
     public async Task<string?> ResolveAlbumArtAsync(string audioFilePath, CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(audioFilePath)) return null;
-
-        var dir = Path.GetDirectoryName(audioFilePath);
-        var baseName = Path.GetFileNameWithoutExtension(audioFilePath);
-
-        // A. Check for matching track sidecar (e.g. song.jpg, song.png)
-        if (!string.IsNullOrEmpty(dir))
-        {
-            var trackJpg = Path.Combine(dir, $"{baseName}.jpg");
-            if (File.Exists(trackJpg)) return trackJpg;
-
-            var trackPng = Path.Combine(dir, $"{baseName}.png");
-            if (File.Exists(trackPng)) return trackPng;
-
-            // B. Check common album cover sidecars in the folder
-            foreach (var pattern in SidecarPatterns)
-            {
-                var sidecar = Path.Combine(dir, pattern);
-                if (File.Exists(sidecar))
-                {
-                    return sidecar;
-                }
-            }
-        }
-
-        // C. Check cache for previously extracted embedded art
-        var fileInfo = new FileInfo(audioFilePath);
-        var cacheKey = ComputeHash($"{audioFilePath}_{fileInfo.LastWriteTimeUtc.Ticks}");
-        var cachedArtPath = Path.Combine(_cacheDirectory, $"{cacheKey}.jpg");
-
-        if (File.Exists(cachedArtPath) && new FileInfo(cachedArtPath).Length > 0)
-        {
-            return cachedArtPath;
-        }
-
-        // D. Extract embedded front cover art using ffmpeg
-        var ffmpegResult = ExternalToolLocator.Locate("ffmpeg.exe");
-        if (!ffmpegResult.Found || string.IsNullOrEmpty(ffmpegResult.ExecutablePath))
-        {
-            return null;
-        }
-
         return await Task.Run(() =>
         {
+            if (!File.Exists(audioFilePath)) return null;
+
+            var dir = Path.GetDirectoryName(audioFilePath);
+            var baseName = Path.GetFileNameWithoutExtension(audioFilePath);
+
+            // A. Check for matching track sidecar (e.g. song.jpg, song.png)
+            if (!string.IsNullOrEmpty(dir))
+            {
+                var trackJpg = Path.Combine(dir, $"{baseName}.jpg");
+                if (File.Exists(trackJpg)) return trackJpg;
+
+                var trackPng = Path.Combine(dir, $"{baseName}.png");
+                if (File.Exists(trackPng)) return trackPng;
+
+                // B. Check common album cover sidecars in the folder
+                foreach (var pattern in SidecarPatterns)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var sidecar = Path.Combine(dir, pattern);
+                    if (File.Exists(sidecar))
+                    {
+                        return sidecar;
+                    }
+                }
+            }
+
+            // C. Check cache for previously extracted embedded art
+            var fileInfo = new FileInfo(audioFilePath);
+            var cacheKey = ComputeHash($"{audioFilePath}_{fileInfo.LastWriteTimeUtc.Ticks}");
+            var cachedArtPath = Path.Combine(_cacheDirectory, $"{cacheKey}.jpg");
+
+            if (File.Exists(cachedArtPath) && new FileInfo(cachedArtPath).Length > 0)
+            {
+                return cachedArtPath;
+            }
+
+            // D. Extract embedded front cover art using ffmpeg
+            var ffmpegResult = ExternalToolLocator.Locate("ffmpeg.exe");
+            if (!ffmpegResult.Found || string.IsNullOrEmpty(ffmpegResult.ExecutablePath))
+            {
+                return null;
+            }
+
             try
             {
                 var psi = new ProcessStartInfo

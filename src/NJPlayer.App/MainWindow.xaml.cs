@@ -859,75 +859,102 @@ public partial class MainWindow : Window
         UpdateVisualizerStatusVisuals();
     }
 
-    private void VisualizerAnimTimer_Tick(object? sender, EventArgs e)
+    private bool _isCalculatingVisualizer = false;
+
+    private async void VisualizerAnimTimer_Tick(object? sender, EventArgs e)
     {
         if (!_isAudioMode || _player == null || _player.IsPaused || VisualizerCanvas.ActualWidth <= 0 || VisualizerCanvas.ActualHeight <= 0)
         {
             return;
         }
 
-        _animPhase += 0.085;
-        if (_animPhase > Math.PI * 200) _animPhase = 0;
+        if (_isCalculatingVisualizer) return;
+        _isCalculatingVisualizer = true;
 
-        RenderVisualizerCanvas();
-    }
-
-    private void RenderVisualizerCanvas()
-    {
-        var h = VisualizerCanvas.ActualHeight;
-        var w = VisualizerCanvas.ActualWidth;
-        if (h <= 0 || w <= 0) return;
-
-        var mode = _settingsManager.Settings.VisualizerType?.ToLowerInvariant() ?? "bars";
-
-        if (mode is "bars" or "spectrum")
+        try
         {
-            if (_visualizerBars.Count == 0)
+            _animPhase += 0.085;
+            if (_animPhase > Math.PI * 200) _animPhase = 0;
+
+            var h = VisualizerCanvas.ActualHeight;
+            var w = VisualizerCanvas.ActualWidth;
+            var phase = _animPhase;
+            var mode = _settingsManager.Settings.VisualizerType?.ToLowerInvariant() ?? "bars";
+
+            if (mode is "bars" or "spectrum")
             {
-                InitVisualizerElements();
-                return;
-            }
-
-            var count = _visualizerBars.Count;
-            for (int i = 0; i < count; i++)
-            {
-                var norm = (double)i / count;
-                var wave1 = Math.Sin(_animPhase * 1.7 + norm * Math.PI * 3.8);
-                var wave2 = Math.Cos(_animPhase * 1.1 + norm * Math.PI * 2.2);
-                var wave3 = Math.Sin(_animPhase * 2.3 + norm * Math.PI * 5.5);
-                var combined = Math.Abs(wave1 * 0.45 + wave2 * 0.35 + wave3 * 0.20);
-
-                var bassBoost = 1.0 + (1.0 - norm) * 0.55;
-                var barHeight = Math.Clamp(combined * (h - 6) * bassBoost + 4, 4, h);
-
-                var rect = _visualizerBars[i];
-                rect.Height = barHeight;
-                Canvas.SetTop(rect, h - barHeight);
-            }
-        }
-        else
-        {
-            const int segs = 64;
-            var midY = h / 2.0;
-
-            if (_visualizerPolyline.Points.Count != segs + 1)
-            {
-                _visualizerPolyline.Points.Clear();
-                for (int i = 0; i <= segs; i++)
+                var count = _visualizerBars.Count;
+                if (count == 0)
                 {
-                    _visualizerPolyline.Points.Add(new Point(0, midY));
+                    InitVisualizerElements();
+                    return;
+                }
+
+                // Offload spectrum bar math calculations off UI thread
+                var heights = await Task.Run(() =>
+                {
+                    var res = new double[count];
+                    for (int i = 0; i < count; i++)
+                    {
+                        var norm = (double)i / count;
+                        var wave1 = Math.Sin(phase * 1.7 + norm * Math.PI * 3.8);
+                        var wave2 = Math.Cos(phase * 1.1 + norm * Math.PI * 2.2);
+                        var wave3 = Math.Sin(phase * 2.3 + norm * Math.PI * 5.5);
+                        var combined = Math.Abs(wave1 * 0.45 + wave2 * 0.35 + wave3 * 0.20);
+                        var bassBoost = 1.0 + (1.0 - norm) * 0.55;
+                        res[i] = Math.Clamp(combined * (h - 6) * bassBoost + 4, 4, h);
+                    }
+                    return res;
+                });
+
+                if (!_isAudioMode || _visualizerBars.Count != count) return;
+                for (int i = 0; i < count; i++)
+                {
+                    var barHeight = heights[i];
+                    var rect = _visualizerBars[i];
+                    rect.Height = barHeight;
+                    Canvas.SetTop(rect, h - barHeight);
                 }
             }
-
-            for (int i = 0; i <= segs; i++)
+            else
             {
-                var x = (w / segs) * i;
-                var norm = (double)i / segs;
-                var wave = Math.Sin(_animPhase * 2.8 + norm * Math.PI * 7.5) *
-                           Math.Cos(_animPhase * 1.4 + norm * Math.PI * 3.0);
-                var y = Math.Clamp(midY + wave * (midY - 4), 2, h - 2);
-                _visualizerPolyline.Points[i] = new Point(x, y);
+                const int segs = 64;
+                var midY = h / 2.0;
+
+                // Offload oscilloscope waveform generation math off UI thread
+                var pointY = await Task.Run(() =>
+                {
+                    var res = new double[segs + 1];
+                    for (int i = 0; i <= segs; i++)
+                    {
+                        var norm = (double)i / segs;
+                        var wave = Math.Sin(phase * 2.8 + norm * Math.PI * 7.5) *
+                                   Math.Cos(phase * 1.4 + norm * Math.PI * 3.0);
+                        res[i] = Math.Clamp(midY + wave * (midY - 4), 2, h - 2);
+                    }
+                    return res;
+                });
+
+                if (!_isAudioMode) return;
+                if (_visualizerPolyline.Points.Count != segs + 1)
+                {
+                    _visualizerPolyline.Points.Clear();
+                    for (int i = 0; i <= segs; i++)
+                    {
+                        _visualizerPolyline.Points.Add(new Point(0, midY));
+                    }
+                }
+
+                for (int i = 0; i <= segs; i++)
+                {
+                    var x = (w / segs) * i;
+                    _visualizerPolyline.Points[i] = new Point(x, pointY[i]);
+                }
             }
+        }
+        finally
+        {
+            _isCalculatingVisualizer = false;
         }
     }
 

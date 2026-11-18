@@ -55,6 +55,7 @@ public sealed class LocalMediaBrowserService
 
     /// <summary>
     /// Returns available and ready local storage drives (e.g. C:\, D:\).
+    /// Safe against network drive / CD-ROM hangs.
     /// </summary>
     public IReadOnlyList<(string Name, string Path)> GetDrives()
     {
@@ -64,23 +65,38 @@ public sealed class LocalMediaBrowserService
             var drives = DriveInfo.GetDrives();
             foreach (var drive in drives)
             {
-                if (drive.IsReady)
+                try
                 {
-                    var label = string.IsNullOrWhiteSpace(drive.VolumeLabel)
-                        ? drive.Name
-                        : $"{drive.Name} ({drive.VolumeLabel})";
-                    result.Add((label, drive.RootDirectory.FullName));
+                    if (drive.DriveType == DriveType.Fixed && drive.IsReady)
+                    {
+                        var label = string.IsNullOrWhiteSpace(drive.VolumeLabel)
+                            ? drive.Name
+                            : $"{drive.Name} ({drive.VolumeLabel})";
+                        result.Add((label, drive.RootDirectory.FullName));
+                    }
+                    else if (drive.DriveType != DriveType.CDRom)
+                    {
+                        result.Add((drive.Name, drive.RootDirectory.FullName));
+                    }
+                }
+                catch
+                {
+                    result.Add((drive.Name, drive.Name));
                 }
             }
         }
         catch
         {
-            // Fallback to system drive if enumeration fails
             var systemDrive = Path.GetPathRoot(Environment.SystemDirectory);
             if (!string.IsNullOrEmpty(systemDrive))
             {
                 result.Add((systemDrive, systemDrive));
             }
+        }
+
+        if (result.Count == 0)
+        {
+            result.Add(("C:\\", "C:\\"));
         }
 
         return result;
@@ -130,13 +146,13 @@ public sealed class LocalMediaBrowserService
     /// </summary>
     public async Task<IReadOnlyList<LocalFileSystemItem>> EnumerateDirectoryAsync(string directoryPath, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(directoryPath) || !Directory.Exists(directoryPath))
-        {
-            return Array.Empty<LocalFileSystemItem>();
-        }
-
         return await Task.Run(() =>
         {
+            if (string.IsNullOrWhiteSpace(directoryPath) || !Directory.Exists(directoryPath))
+            {
+                return (IReadOnlyList<LocalFileSystemItem>)Array.Empty<LocalFileSystemItem>();
+            }
+
             ct.ThrowIfCancellationRequested();
 
             var items = new List<LocalFileSystemItem>();
